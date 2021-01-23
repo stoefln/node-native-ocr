@@ -49,12 +49,12 @@ old/
 *-old/
 *-notrack/
 no-track/
-build/
 combo/
 reference/
 jscoverage_lib/
 temp/
 tmp/
+prebuilds/
 
 # vs code
 .editorconfig
@@ -62,3 +62,4 @@ tmp/
 .vscode/settings.json
 .vscode/tasks.json
 .travis.yml
+.prebuildrc

@@ -12,7 +12,6 @@ DEFS_Debug := \
 	'-D_DARWIN_USE_64_BIT_INODE=1' \
 	'-D_LARGEFILE_SOURCE' \
 	'-D_FILE_OFFSET_BITS=64' \
-	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
 	'-DBUILDING_NODE_EXTENSION' \
 	'-DDEBUG' \
@@ -48,13 +47,13 @@ CFLAGS_OBJC_Debug :=
 CFLAGS_OBJCC_Debug :=
 
 INCS_Debug := \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/include/node \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/src \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/openssl/config \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/openssl/openssl/include \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/uv/include \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/zlib \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/v8/include \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/include/node \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/src \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/openssl/config \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/openssl/openssl/include \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/uv/include \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/zlib \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/v8/include \
 	-I$(srcdir)/node_modules/node-addon-api \
 	-I/usr/local/Cellar/tesseract/4.1.1/include \
 	-I/usr/local/Cellar/leptonica/1.80.0/include/leptonica
@@ -69,7 +68,6 @@ DEFS_Release := \
 	'-D_DARWIN_USE_64_BIT_INODE=1' \
 	'-D_LARGEFILE_SOURCE' \
 	'-D_FILE_OFFSET_BITS=64' \
-	'-DOPENSSL_NO_PINSHARED' \
 	'-DOPENSSL_THREADS' \
 	'-DBUILDING_NODE_EXTENSION'
 
@@ -102,13 +100,13 @@ CFLAGS_OBJC_Release :=
 CFLAGS_OBJCC_Release :=
 
 INCS_Release := \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/include/node \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/src \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/openssl/config \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/openssl/openssl/include \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/uv/include \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/zlib \
-	-I/Users/steph/Library/Caches/node-gyp/12.13.1/deps/v8/include \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/include/node \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/src \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/openssl/config \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/openssl/openssl/include \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/uv/include \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/zlib \
+	-I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/deps/v8/include \
 	-I$(srcdir)/node_modules/node-addon-api \
 	-I/usr/local/Cellar/tesseract/4.1.1/include \
 	-I/usr/local/Cellar/leptonica/1.80.0/include/leptonica

@@ -26,7 +26,7 @@
     "icu_ver_major": "64",
     "is_debug": 0,
     "llvm_version": "0.0",
-    "napi_build_version": "0",
+    "napi_build_version": "5",
     "node_byteorder": "little",
     "node_code_cache": "yes",
     "node_debug_lib": "false",
@@ -72,13 +72,9 @@
     "v8_use_snapshot": 1,
     "want_separate_host_toolset": 0,
     "xcode_version": "8.0",
-    "nodedir": "/Users/steph/Library/Caches/node-gyp/12.13.1",
+    "nodedir": "/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6",
     "standalone_static_library": 1,
-    "module": "/Users/steph/Documents/workspace/node-native-ocr/binding-v0.0.1-n-api-darwin-x64/node-native-ocr.node",
-    "module_name": "node-native-ocr",
-    "module_path": "/Users/steph/Documents/workspace/node-native-ocr/binding-v0.0.1-n-api-darwin-x64",
-    "napi_version": "5",
-    "node_abi_napi": "napi",
-    "node_napi_label": "node-v72"
+    "target": "5.0.6",
+    "runtime": "electron"
   }
 }

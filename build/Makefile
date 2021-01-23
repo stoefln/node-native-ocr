@@ -278,9 +278,9 @@ $(obj).$(TOOLSET)/%.o: $(srcdir)/%.m FORCE_DO_CMD
 	@$(call do_cmd,objc,1)
 $(obj).$(TOOLSET)/%.o: $(srcdir)/%.mm FORCE_DO_CMD
 	@$(call do_cmd,objcxx,1)
-$(obj).$(TOOLSET)/%.o: $(srcdir)/%.S FORCE_DO_CMD
-	@$(call do_cmd,cc,1)
 $(obj).$(TOOLSET)/%.o: $(srcdir)/%.s FORCE_DO_CMD
+	@$(call do_cmd,cc,1)
+$(obj).$(TOOLSET)/%.o: $(srcdir)/%.S FORCE_DO_CMD
 	@$(call do_cmd,cc,1)
 
 # Try building from generated source, too.
@@ -296,9 +296,9 @@ $(obj).$(TOOLSET)/%.o: $(obj).$(TOOLSET)/%.m FORCE_DO_CMD
 	@$(call do_cmd,objc,1)
 $(obj).$(TOOLSET)/%.o: $(obj).$(TOOLSET)/%.mm FORCE_DO_CMD
 	@$(call do_cmd,objcxx,1)
-$(obj).$(TOOLSET)/%.o: $(obj).$(TOOLSET)/%.S FORCE_DO_CMD
-	@$(call do_cmd,cc,1)
 $(obj).$(TOOLSET)/%.o: $(obj).$(TOOLSET)/%.s FORCE_DO_CMD
+	@$(call do_cmd,cc,1)
+$(obj).$(TOOLSET)/%.o: $(obj).$(TOOLSET)/%.S FORCE_DO_CMD
 	@$(call do_cmd,cc,1)
 
 $(obj).$(TOOLSET)/%.o: $(obj)/%.c FORCE_DO_CMD
@@ -313,9 +313,9 @@ $(obj).$(TOOLSET)/%.o: $(obj)/%.m FORCE_DO_CMD
 	@$(call do_cmd,objc,1)
 $(obj).$(TOOLSET)/%.o: $(obj)/%.mm FORCE_DO_CMD
 	@$(call do_cmd,objcxx,1)
-$(obj).$(TOOLSET)/%.o: $(obj)/%.S FORCE_DO_CMD
-	@$(call do_cmd,cc,1)
 $(obj).$(TOOLSET)/%.o: $(obj)/%.s FORCE_DO_CMD
+	@$(call do_cmd,cc,1)
+$(obj).$(TOOLSET)/%.o: $(obj)/%.S FORCE_DO_CMD
 	@$(call do_cmd,cc,1)
 
 
@@ -326,8 +326,8 @@ ifeq ($(strip $(foreach prefix,$(NO_LOAD),\
 endif
 
 quiet_cmd_regen_makefile = ACTION Regenerating $@
-cmd_regen_makefile = cd $(srcdir); /Users/steph/.nvm/versions/node/v12.13.1/lib/node_modules/npm/node_modules/node-gyp/gyp/gyp_main.py -fmake --ignore-environment "--toplevel-dir=." -I/Users/steph/Documents/workspace/node-native-ocr/build/config.gypi -I/Users/steph/.nvm/versions/node/v12.13.1/lib/node_modules/npm/node_modules/node-gyp/addon.gypi -I/Users/steph/Library/Caches/node-gyp/12.13.1/include/node/common.gypi "--depth=." "-Goutput_dir=." "--generator-output=build" "-Dlibrary=shared_library" "-Dvisibility=default" "-Dnode_root_dir=/Users/steph/Library/Caches/node-gyp/12.13.1" "-Dnode_gyp_dir=/Users/steph/.nvm/versions/node/v12.13.1/lib/node_modules/npm/node_modules/node-gyp" "-Dnode_lib_file=/Users/steph/Library/Caches/node-gyp/12.13.1/<(target_arch)/node.lib" "-Dmodule_root_dir=/Users/steph/Documents/workspace/node-native-ocr" "-Dnode_engine=v8" binding.gyp
-Makefile: $(srcdir)/../../../.nvm/versions/node/v12.13.1/lib/node_modules/npm/node_modules/node-gyp/addon.gypi $(srcdir)/../../../Library/Caches/node-gyp/12.13.1/include/node/common.gypi $(srcdir)/build/config.gypi $(srcdir)/binding.gyp
+cmd_regen_makefile = cd $(srcdir); /Users/steph/.nvm/versions/node/v12.13.1/lib/node_modules/prebuild/node_modules/node-gyp/gyp/gyp_main.py -fmake --ignore-environment "-Dlibrary=shared_library" "-Dvisibility=default" "-Dnode_root_dir=/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6" "-Dnode_gyp_dir=/Users/steph/.nvm/versions/node/v12.13.1/lib/node_modules/prebuild/node_modules/node-gyp" "-Dnode_lib_file=/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/<(target_arch)/node.lib" "-Dmodule_root_dir=/Users/steph/Documents/workspace/node-native-ocr" "-Dnode_engine=v8" "--depth=." "-Goutput_dir=." "--generator-output=build" -I/Users/steph/Documents/workspace/node-native-ocr/build/config.gypi -I/Users/steph/.nvm/versions/node/v12.13.1/lib/node_modules/prebuild/node_modules/node-gyp/addon.gypi -I/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/include/node/common.gypi "--toplevel-dir=." binding.gyp
+Makefile: $(srcdir)/binding.gyp $(srcdir)/build/config.gypi $(srcdir)/../../../../../private/var/folders/5h/gsjh01jn2079222pq9p4yhsr0000gn/T/prebuild/electron/5.0.6/include/node/common.gypi $(srcdir)/../../../.nvm/versions/node/v12.13.1/lib/node_modules/prebuild/node_modules/node-gyp/addon.gypi
 	$(call do_cmd,regen_makefile)
 
 # "all" is a concatenation of the "all" targets from all the included
