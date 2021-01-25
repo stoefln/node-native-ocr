@@ -13,11 +13,10 @@
 
 # node-native-ocr
 
-<img align="right" alt="" src="https://raw.githubusercontent.com/stoefln/node-node-native-ocr/master/node-native-ocr.gif" />
+The native Node.js bindings to the [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) project using N-API and [node-addon-api](https://github.com/nodejs/node-addon-api).
 
-The native Node.js bindings to the [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) project.
-
-- Using Node.js bindings, avoid spawning `tesseract` command line.  
+Benefits:
+- Avoid spawning `tesseract` command line.  
 - Asynchronous I/O: Image reading and processing in insulated event loop backed by [libuv](https://github.com/libuv/libuv).
 - Support to read image data from JavaScript `buffer`s.
 
@@ -41,16 +40,8 @@ $ npm install node-native-ocr
 
 ### To Use with Electron
 
-Due to the limitation of node native modules, if you want to use `node-native-ocr` with electron, add a `.npmrc` file to the root of your electron project, before `npm install`:
+If you want to use `node-native-ocr` with electron, use [electron-rebuild](https://github.com/electron/electron-rebuild/), which takes care of compiling `node-native-cor` with the node version of your electron installation.
 
-```ini
-runtime = electron
-; The version of the local electron,
-; use `npm ls electron` to figure it out
-target = 1.7.5
-target_arch = x64
-disturl = https://atom.io/download/atom-shell
-```
 
 <!--
 

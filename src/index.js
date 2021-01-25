@@ -1,4 +1,4 @@
-import bindings from '../build/Release/node-native-ocr'
+var bindings = require('bindings')('node-native-ocr');
 
 
 const DEFAULT_LANG = 'eng'
@@ -22,7 +22,7 @@ const makePromise = (method) => {
   
   return (arg, options) => new Promise((resolve, reject) => {
     options = handleOptions(options)
-
+    
     bindings[method](arg, options.lang, (err, text) => {
       if (err) {
         console.log('errrror:', err)
