@@ -1,4 +1,15 @@
-var bindings = require('bindings')('node-native-ocr');
+
+let bindings
+
+const isElectron = process.versions.hasOwnProperty('electron');
+
+if(isElectron) {
+  const modulePath = require("electron").remote.app.getAppPath()+'/node_modules/node-native-ocr/build/Release/node-native-ocr'
+  console.log('modulePath', modulePath)
+  bindings = __non_webpack_require__(modulePath)
+} else {
+  bindings = require('../build/Release/node-native-ocr');
+}
 
 
 const DEFAULT_LANG = 'eng'
