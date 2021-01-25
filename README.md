@@ -40,6 +40,8 @@ $ npm install node-native-ocr
 
 ### To Use with Electron
 
+I have not found a way to get tesseract working in a bundled electron installer yet. This is work in progress....
+
 If you want to use `node-native-ocr` with electron, use [electron-rebuild](https://github.com/electron/electron-rebuild/), which takes care of compiling `node-native-cor` with the node version of your electron installation.
 
 
