@@ -1,3 +1,4 @@
+const path = require('path')
 
 let bindings
 
@@ -11,6 +12,8 @@ if(isElectron) {
   bindings = require('../build/Release/node-native-ocr.node')
 }
 
+const tessdataPath = path.resolve(__dirname,"..","tessdata")
+process.env.TESSDATA_PREFIX = tessdataPath
 
 const DEFAULT_LANG = 'eng'
 const LANG_DELIMITER = '+'
@@ -49,4 +52,4 @@ const makePromise = (method) => {
   })
 }
 
-export const recognize = makePromise('recognize')
+exports.recognize = makePromise('recognize')

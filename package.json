@@ -24,7 +24,8 @@
   },
   "dependencies": {
     "babel-runtime": "^6.23.0",
-    "node-addon-api": "3.1.0"
+    "node-addon-api": "3.1.0",
+    "shelljs": "^0.8.4"
   },
   "scripts": {
     "build": "npm run build-cc && npm run build-js",
