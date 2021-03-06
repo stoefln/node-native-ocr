@@ -1,0 +1,8 @@
+[submodule "leptonica"]
+	path = leptonica
+	url = https://github.com/DanBloomberg/leptonica.git
+	branch = tags/1.80.0
+[submodule "tesseract"]
+	path = tesseract
+	url = https://github.com/tesseract-ocr/tesseract.git
+	branch = tags/4.1.1
