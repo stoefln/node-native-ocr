@@ -131,7 +131,7 @@ function runCMakeBuild (dirName, cmakeConfig, envVars) {
   shell.exec(cmakeCmd);
 
   shell.echo(`Creating a ${cmakeConfig} build.`)
-  shell.exec(`cmake --build . --config ${cmakeConfig}`);
+  shell.exec(`cmake --build . --parallel --config ${cmakeConfig}`);
 
   shell.echo(`Installing a ${cmakeConfig} build.`)
   shell.exec('cmake --install .');
