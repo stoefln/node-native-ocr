@@ -1,3 +1,7 @@
+const path = require('path')
+
+const tessdataPath = path.resolve(__dirname,"..","tessdata")
+process.env.TESSDATA_PREFIX = tessdataPath
 
 let bindings
 
@@ -49,4 +53,4 @@ const makePromise = (method) => {
   })
 }
 
-export const recognize = makePromise('recognize')
+exports.recognize = makePromise('recognize')
