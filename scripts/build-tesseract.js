@@ -1,3 +1,4 @@
+var fs = require('fs');
 var path = require('path');
 var shell = require('shelljs');
 
@@ -97,28 +98,50 @@ function buildLibjpeg (dirName) {
 function buildLeptonica (dirName) {
   shell.echo('Building Leptonica.');
 
-  runCMakeBuild (dirName, cmakeBuildType, {
-    SW_BUILD: 'OFF',
-    CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
-    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: process.platform === 'darwin' ? 'FALSE' : 'TRUE',
-    CMAKE_PREFIX_PATH: '${PWD}/../../libjpeg/build',
-    CMAKE_INCLUDE_PATH: '${PWD}/../../libjpeg/build/bin/include',
-    CMAKE_LIBRARY_PATH: '${PWD}/../../libjpeg/build/bin/lib'
-  });
+  runCMakeBuild (dirName, cmakeBuildType, 
+    {
+      SW_BUILD: 'OFF',
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: process.platform === 'darwin' ? 'FALSE' : 'TRUE',
+      CMAKE_PREFIX_PATH: '${PWD}/../../libjpeg/build',
+      CMAKE_INCLUDE_PATH: '${PWD}/../../libjpeg/build/bin/include',
+      CMAKE_LIBRARY_PATH: '${PWD}/../../libjpeg/build/bin/lib'
+    },     
+    (dirName, cmakeConfig, envVars) => { // patch config_auto.h between config and build
+      if (process.platform === 'darwin') {
+        const filePath = path.resolve(__dirname,'..',dirName,'build','src','config_auto.h');
+        shell.echo(`Patching ${filePath} for Mac.`);
+        let autoConfig = fs.readFileSync(filePath, 'utf8');
+        const searchText = /^#define\s+HAVE_FMEMOPEN\s+1/gm;
+        const replacementText = '#define HAVE_FMEMOPEN 0';
+        const foundText = autoConfig.match(searchText);
+        if (foundText) {
+          const updatedConfig = autoConfig.replace(searchText, replacementText);
+          fs.writeFileSync(filePath, updatedConfig, 'utf8');
+          shell.echo(`The '${foundText}' directive was replaced with '${replacementText}'.`);
+        } else {
+          shell.echo(`The '#define HAVE_FMEMOPEN 1' directive was not found.`);
+          shell.echo('This may lead to a build that does not run on all macOS machines.');
+        }
+      }
+    }
+  );
 }
 
 function buildTesseract (dirName) {
   shell.echo('Building Tesseract.');
 
-  runCMakeBuild (dirName, cmakeBuildType, {
-    STATIC: 'ON',
-    CPPAN_BUILD: 'OFF',
-    BUILD_TRAINING_TOOLS: 'OFF',
-    Leptonica_DIR: '../leptonica/build'
-  });
+  runCMakeBuild (dirName, cmakeBuildType, 
+    {
+      STATIC: 'ON',
+      CPPAN_BUILD: 'OFF',
+      BUILD_TRAINING_TOOLS: 'OFF',
+      Leptonica_DIR: '../leptonica/build'
+    }
+  );
 }
 
-function runCMakeBuild (dirName, cmakeConfig, envVars) {
+function runCMakeBuild (dirName, cmakeBuildType, envVars, patchConfig) {
   createAndEnterBuildDir(dirName);
 
   let cmakeCmd = 'cmake';
@@ -126,14 +149,16 @@ function runCMakeBuild (dirName, cmakeConfig, envVars) {
   cmakeCmd += formatEnvVars (commonEnvVariables);
   cmakeCmd += ' ..';
 
-  shell.echo(`Configuring a ${cmakeConfig} build.`)
+  shell.echo(`Configuring a ${cmakeBuildType} build.`)
   shell.echo(cmakeCmd);
   shell.exec(cmakeCmd);
 
-  shell.echo(`Creating a ${cmakeConfig} build.`)
-  shell.exec(`cmake --build . --config ${cmakeConfig}`);
+  if (patchConfig) patchConfig(dirName, cmakeBuildType, envVars);
 
-  shell.echo(`Installing a ${cmakeConfig} build.`)
+  shell.echo(`Creating a ${cmakeBuildType} build.`)
+  shell.exec(`cmake --build . --config ${cmakeBuildType}`);
+
+  shell.echo(`Installing a ${cmakeBuildType} build.`)
   shell.exec('cmake --install .');
 
   leaveBuildDir();
