@@ -136,6 +136,7 @@ function buildTesseract (dirName) {
       STATIC: 'ON',
       CPPAN_BUILD: 'OFF',
       BUILD_TRAINING_TOOLS: 'OFF',
+      AUTO_OPTIMIZE: 'OFF',
       Leptonica_DIR: '../leptonica/build'
     }
   );
