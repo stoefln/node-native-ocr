@@ -40,3 +40,7 @@ build/
 .vscode/tasks.json
 .travis.yml
 .prebuildrc
+
+# project
+libjpeg/
+*.tgz

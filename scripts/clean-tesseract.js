@@ -10,7 +10,7 @@ function removeBuildDir (dirName) {
       shell.rm('-rf', 'build');
       shell.echo(`${dirName} build directory removed.`);
     } else {
-      shell.echo(`${dirName} build directory did not exist.`);
+      shell.echo(`${dirName} build directory does not exist.`);
     }
     shell.popd('-q');
   }

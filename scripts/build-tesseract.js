@@ -2,9 +2,10 @@ var fs = require('fs');
 var path = require('path');
 var shell = require('shelljs');
 
-shell.config.fatal = true; // thrown an exception on any error
-
+const requiredCMakeVersion = '3.15';
 const cmakeBuildType = 'Release';
+
+shell.config.fatal = true; // thrown an exception on any error
 
 const commonEnvVariables = {
   CMAKE_BUILD_TYPE: cmakeBuildType,
@@ -32,11 +33,17 @@ shell.echo(`Working directory: ${homeDir}`);
 
 // ------ submodules ------
 shell.echo('Initializing Git submodules.');
-if (process.platform === 'win32') {
-  // https://stackoverflow.com/questions/49256190/how-to-fix-git-sh-setup-file-not-found-in-windows/50833818
-  shell.env['PATH'] = `${shell.env['PATH']};C:\\Program Files\\Git\\usr\\bin;C:\\Program Files\\Git\\mingw64\\libexec\\git-core`;
+if (shell.test('-e', 'tesseract') && shell.test('-e', 'leptonica')) {
+  shell.echo('The \'tesseract\' and \'leptonica\' directories already exist.')
+} else {
+  if (process.platform === 'win32') {
+    // https://stackoverflow.com/questions/49256190/how-to-fix-git-sh-setup-file-not-found-in-windows/50833818
+    shell.env['PATH'] = `${shell.env['PATH']};C:\\Program Files\\Git\\usr\\bin;C:\\Program Files\\Git\\mingw64\\libexec\\git-core`;
+  }
+  shell.echo('git submodule init start.')
+  shell.exec('git submodule update --init');
+  shell.echo('git submodule init end.')
 }
-shell.exec('git submodule update --init');
 
 // ------ libraries ------
 buildLibjpeg ('libjpeg');
@@ -46,15 +53,14 @@ buildTesseract ('tesseract');
 shell.echo('build-tesseract script end.');
 
 function checkCMakeVersion() {
-  const requiredVer = '3.15';
   let versionOK = false;
-  shell.echo(`This script requires CMake version ${requiredVer} or later.`);
+  shell.echo(`This script requires CMake version ${requiredCMakeVersion} or later.`);
   if (!shell.which('cmake')) {
     shell.echo('CMake not found on this system.');
   } else {
     const reply = shell.exec('cmake --version', {silent: true});
     foundVersion = (/\d+.\d+.\d+/mg).exec(reply)[0];
-    versionOK = checkVersion(foundVersion, requiredVer) >= 0;
+    versionOK = checkVersion(foundVersion, requiredCMakeVersion) >= 0;
     if (versionOK) {
       shell.echo(`CMake ${foundVersion} found on this system.`);
     } else {
