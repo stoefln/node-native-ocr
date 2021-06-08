@@ -24,36 +24,11 @@ Contributions are welcome.
 
 ## Install
 
-First of all, a g++ 4.9 compiler is required.
-
-Before install `node-native-ocr`, the following dependencies should be installed
-
-```sh
-$ brew install pkg-config tesseract # mac os
-```
-
-Then npm install
+Via npm: 
 
 ```sh
 $ npm install node-native-ocr
 ```
-
-### To Use with Electron
-
-I have not found a way to get tesseract working in a bundled electron installer yet. This is work in progress....
-
-If you want to use `node-native-ocr` with electron, use [electron-rebuild](https://github.com/electron/electron-rebuild/), which takes care of compiling `node-native-cor` with the node version of your electron installation.
-
-
-<!--
-
-### The N-API version of `node-native-ocr`
-
-The N-API version of `node-native-ocr` (node-native-ocr@n-api) is and will be remaining experimental before the feature of N-API stabilized in Node.js 8.0 and ported to older Node.js LTS lines ([via](https://medium.com/the-node-js-collection/n-api-next-generation-node-js-apis-for-native-modules-169af5235b06)).
-
-For now, it is recommended to use `node-native-ocr@latest`
-
--->
 
 ## Usage
 
