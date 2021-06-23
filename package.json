@@ -1,6 +1,6 @@
 {
   "name": "node-native-ocr",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Native Node.js bindings for the Tesseract OCR project.",
   "gypfile": true,
   "main": "lib/index.js",
