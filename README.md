@@ -126,7 +126,13 @@ resolver:
 ```sh
 $ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ```
+## Why another node OCR package?
 
+After doing a lot of research and trying to compile other node OCR packages for electron without success, I decided to create my own. Based on N-API, which would save me from a lot of trouble.
+Now it is used in [Repeato](https://www.repeato.app), a low-code mobile app testing tool which works based on Computer Visions.
+Node-native-ocr enables Repeato to do text recognition and text assertions on Android and iOS and acrross all platforms such as React Native, Flutter or Unity.
+
+Let me know about your projects too, and I can add them here to the list!
 ## License
 
 MIT
