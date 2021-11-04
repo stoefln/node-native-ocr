@@ -16,6 +16,7 @@ private:
   uint8_t *_buffer;
   size_t _length;
   std::string _lang;
+  std::string _path;
   char *_outText;
 
   Pix *ReadImage()
@@ -27,8 +28,9 @@ public:
   RecognizeWorker(uint8_t *buffer,
                   size_t length,
                   std::string &lang,
+                  std::string &path,
                   Function &callback)
-      : Napi::AsyncWorker(callback), _buffer(buffer), _length(length), _lang(lang)  {
+      : Napi::AsyncWorker(callback), _buffer(buffer), _length(length), _lang(lang), _path(path)  {
 
       }
 
@@ -52,9 +54,7 @@ public:
     printf("execute with lang: %s\n", _lang.c_str());
     char *error_code = nullptr;
     char *error_message = nullptr;
-    int tess_failed = TessRecognizePix(image, _lang.c_str(),
-                                       _outText, nullptr,
-                                       error_code, error_message);
+    int tess_failed = TessRecognizePix(image, _lang.c_str(), _path.c_str(), _outText, error_code, error_message);
     
     if (tess_failed)
     {
@@ -88,7 +88,7 @@ void Recognize(const Napi::CallbackInfo &info)
 
   Napi::Env env = info.Env();
 
-  if (info.Length() < 3)
+  if (info.Length() < 4)
   {
     Napi::TypeError::New(env, "Invalid argument count").ThrowAsJavaScriptException();
     return;
@@ -96,19 +96,26 @@ void Recognize(const Napi::CallbackInfo &info)
 
   if (!info[1].IsString())
   {
-    Napi::TypeError::New(env, "Second param needs to be a string!").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "2. param needs to be a string!").ThrowAsJavaScriptException();
     return;
   }
 
-  if (!info[2].IsFunction())
+if (!info[2].IsString())
   {
-    Napi::TypeError::New(env, "Third argument needs to be a callback!").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "3. param needs to be a string!").ThrowAsJavaScriptException();
+    return;
+  }
+
+  if (!info[3].IsFunction())
+  {
+    Napi::TypeError::New(env, "4. argument needs to be a callback!").ThrowAsJavaScriptException();
     return;
   }
   size_t bufferLength;
   uint8_t *bufferData;
   std::string lang = info[1].As<String>().Utf8Value();
-  Function callback = info[2].As<Function>();
+  std::string tessDataPath = info[2].As<String>().Utf8Value();
+  Function callback = info[3].As<Function>();
   
   printf("\n\nlang: %s\n", lang.c_str());
   
@@ -117,6 +124,7 @@ void Recognize(const Napi::CallbackInfo &info)
       bufferData,
       bufferLength,
       lang,
+      tessDataPath,
       callback);
 
   asyncWorker->Queue();

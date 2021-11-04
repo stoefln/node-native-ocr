@@ -2,7 +2,7 @@
 
 
 int TessRecognizePix (Pix *image,
-                      const char *lang, char *&outText, const char *datapath,
+                      const char *lang, const char *datapath, char *&outText, 
                       char *error_code, char *error_message) {
 
   tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();

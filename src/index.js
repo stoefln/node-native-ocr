@@ -2,22 +2,14 @@ const path = require('path')
 let bindings
 
 const isElectron = process.versions.hasOwnProperty('electron')
+const ocrPackagePath = 'node_modules/node-native-ocr'
 
 if (isElectron) {
   const electron = require("electron")
   const appPath = (electron.remote?.app || electron.app).getAppPath()
-  const ocrPackagePath = 'node_modules/node-native-ocr'
   const modulePath = path.resolve(appPath, ocrPackagePath, 'build/Release/node-native-ocr')
-  console.log('modulePath', modulePath)
-  const tessdataPath = path.resolve(appPath, ocrPackagePath, 'tessdata')
-  process.env.TESSDATA_PREFIX = tessdataPath
-  console.log('tessdataPath', tessdataPath)
   bindings = __non_webpack_require__(modulePath)
-
 } else {
-
-  const tessdataPath = path.resolve(__dirname, "..", "tessdata")
-  process.env.TESSDATA_PREFIX = tessdataPath
   bindings = require('../build/Release/node-native-ocr.node')
 }
 
@@ -25,17 +17,29 @@ if (isElectron) {
 const DEFAULT_LANG = 'eng'
 const LANG_DELIMITER = '+'
 
-const handleOptions = ({
-  lang = DEFAULT_LANG
-} = {}) => {
+const handleOptions = (options = {}) => {
 
-  if (Array.isArray(lang)) {
-    lang = lang.join(LANG_DELIMITER)
+  if(!options.lang){
+    options.lang = DEFAULT_LANG
+  }
+  if(!options.tessdataPath){
+    if (isElectron) {
+      console.log('Electron mode.')
+      const electron = require("electron")
+      const appPath = (electron.remote?.app || electron.app).getAppPath()
+      options.tessdataPath = path.resolve(appPath, ocrPackagePath, 'tessdata')
+    } else{
+      console.log('Node mode.')
+      options.tessdataPath = path.resolve(__dirname, "..", "tessdata")
+    }
+  }
+  console.log('options.tessdataPath: ', options.tessdataPath)
+
+  if (Array.isArray(options.lang)) {
+    options.lang = options.lang.join(LANG_DELIMITER)
   }
 
-  return {
-    lang
-  }
+  return options
 }
 
 
@@ -43,8 +47,8 @@ const makePromise = (method) => {
 
   return (arg, options) => new Promise((resolve, reject) => {
     options = handleOptions(options)
-
-    bindings[method](arg, options.lang, (err, text) => {
+    
+    bindings[method](arg, options.lang, options.tessdataPath, (err, text) => {
       if (err) {
         console.log('error:', err)
         const error = new Error(text)
