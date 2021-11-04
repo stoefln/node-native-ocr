@@ -6,7 +6,7 @@ const ocrPackagePath = 'node_modules/node-native-ocr'
 
 if (isElectron) {
   const electron = require("electron")
-  const appPath = (electron.remote?.app || electron.app).getAppPath()
+  const appPath = (electron.app || electron.remote.app).getAppPath()
   const modulePath = path.resolve(appPath, ocrPackagePath, 'build/Release/node-native-ocr')
   bindings = __non_webpack_require__(modulePath)
 } else {
@@ -26,7 +26,7 @@ const handleOptions = (options = {}) => {
     if (isElectron) {
       console.log('Electron mode.')
       const electron = require("electron")
-      const appPath = (electron.remote?.app || electron.app).getAppPath()
+      const appPath = (electron.app || electron.remote.app).getAppPath()
       options.tessdataPath = path.resolve(appPath, ocrPackagePath, 'tessdata')
     } else{
       console.log('Node mode.')
