@@ -133,6 +133,12 @@ Now it is used in [Repeato](https://www.repeato.app), a low-code mobile app test
 Node-native-ocr enables Repeato to do text recognition and text assertions on Android and iOS and acrross all platforms such as React Native, Flutter or Unity.
 
 Let me know about your projects too, and I can add them here to the list!
+
+## Development notes
+
+To build the node-native-ocr project for testing, navigate into the node-native-ocr directory and exec
+`npm run install`
+
 ## License
 
 MIT
