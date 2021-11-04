@@ -139,6 +139,9 @@ Let me know about your projects too, and I can add them here to the list!
 To build the node-native-ocr project for testing, navigate into the node-native-ocr directory and exec
 `npm run install`
 
+I had problems with some node versions. A version which definitelly worked for me was v11.15.0.
+After changing the code, and rebuilding the project, just run `npm run test`
+
 ## License
 
 MIT

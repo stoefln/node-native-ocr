@@ -33,7 +33,7 @@ test('recognize, multiple languages', async t => {
   const result = await recognize(buffer, {
     lang: [
       'eng',
-      'chi_sim'
+      'ita'
     ]
   })
   t.is(result, '“Creativity is the\ngreatest rebellion in\nexistence.”\n\nOsho')
