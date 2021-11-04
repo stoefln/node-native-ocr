@@ -2,3 +2,5 @@
 .appveyor.yml
 .babelrc
 .editorconfig
+leptonica
+tesseract
