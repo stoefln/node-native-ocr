@@ -33,7 +33,9 @@ const handleOptions = (options = {}) => {
       options.tessdataPath = path.resolve(__dirname, "..", "tessdata")
     }
   }
-  console.log('options.tessdataPath: ', options.tessdataPath)
+  if(!options.format){
+    options.format = 'txt'
+  }
 
   if (Array.isArray(options.lang)) {
     options.lang = options.lang.join(LANG_DELIMITER)
@@ -42,13 +44,12 @@ const handleOptions = (options = {}) => {
   return options
 }
 
-
 const makePromise = (method) => {
 
   return (arg, options) => new Promise((resolve, reject) => {
     options = handleOptions(options)
     
-    bindings[method](arg, options.lang, options.tessdataPath, (err, text) => {
+    bindings[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', (err, text) => {
       if (err) {
         console.log('error:', err)
         const error = new Error(text)

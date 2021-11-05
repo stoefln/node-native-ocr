@@ -2,7 +2,7 @@
 
 
 int TessRecognizePix (Pix *image,
-                      const char *lang, const char *datapath, char *&outText, 
+                      const char *lang, const char *datapath, bool tsvOutput, char *&outText, 
                       char *error_code, char *error_message) {
 
   tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();
@@ -23,7 +23,11 @@ int TessRecognizePix (Pix *image,
   pixDestroy(&image);
 
   // Get OCR result
-  outText = api->GetUTF8Text();
+  if(tsvOutput){
+    outText = api->GetTSVText(0);
+  } else {
+    outText = api->GetUTF8Text();
+  }
 
   // Destroy used object and release memory
   api->End();

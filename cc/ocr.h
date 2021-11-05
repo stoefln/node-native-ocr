@@ -6,7 +6,7 @@
 
 
 int TessRecognizePix (Pix *image,
-                      const char *lang, const char *datapath, char *&outText,
+                      const char *lang, const char *datapath, bool tsvOutput, char *&outText,
                       char *error_code, char *error_message);
 
 #endif
