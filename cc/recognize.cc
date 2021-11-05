@@ -7,6 +7,7 @@
 using Napi::Env;
 using Napi::HandleScope;
 using Napi::String;
+using Napi::Boolean;
 using Napi::Function;
 
 class RecognizeWorker : public Napi::AsyncWorker
@@ -17,6 +18,7 @@ private:
   size_t _length;
   std::string _lang;
   std::string _path;
+  bool _tsvOutput;
   char *_outText;
 
   Pix *ReadImage()
@@ -29,8 +31,9 @@ public:
                   size_t length,
                   std::string &lang,
                   std::string &path,
+                  bool tsvOutput,
                   Function &callback)
-      : Napi::AsyncWorker(callback), _buffer(buffer), _length(length), _lang(lang), _path(path)  {
+      : Napi::AsyncWorker(callback), _buffer(buffer), _length(length), _lang(lang), _path(path), _tsvOutput(tsvOutput)  {
 
       }
 
@@ -54,7 +57,7 @@ public:
     printf("execute with lang: %s\n", _lang.c_str());
     char *error_code = nullptr;
     char *error_message = nullptr;
-    int tess_failed = TessRecognizePix(image, _lang.c_str(), _path.c_str(), _outText, error_code, error_message);
+    int tess_failed = TessRecognizePix(image, _lang.c_str(), _path.c_str(), _tsvOutput, _outText, error_code, error_message);
     
     if (tess_failed)
     {
@@ -106,7 +109,7 @@ if (!info[2].IsString())
     return;
   }
 
-  if (!info[3].IsFunction())
+  if (!info[4].IsFunction())
   {
     Napi::TypeError::New(env, "4. argument needs to be a callback!").ThrowAsJavaScriptException();
     return;
@@ -115,7 +118,8 @@ if (!info[2].IsString())
   uint8_t *bufferData;
   std::string lang = info[1].As<String>().Utf8Value();
   std::string tessDataPath = info[2].As<String>().Utf8Value();
-  Function callback = info[3].As<Function>();
+  bool tsvOutput = info[3].As<Boolean>();
+  Function callback = info[4].As<Function>();
   
   printf("\n\nlang: %s\n", lang.c_str());
   
@@ -125,6 +129,7 @@ if (!info[2].IsString())
       bufferLength,
       lang,
       tessDataPath,
+      tsvOutput,
       callback);
 
   asyncWorker->Queue();

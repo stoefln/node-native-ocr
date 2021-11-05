@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/stoefln/node-node-native-ocr.svg?branch=master)](https://travis-ci.org/stoefln/node-node-native-ocr)
 [![Coverage](https://codecov.io/gh/stoefln/node-node-native-ocr/branch/master/graph/badge.svg)](https://codecov.io/gh/stoefln/node-node-native-ocr)
+
 <!-- optional appveyor tst
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/github/stoefln/node-node-native-ocr?branch=master&svg=true)](https://ci.appveyor.com/project/stoefln/node-node-native-ocr)
 -->
@@ -10,13 +11,13 @@
 [![npm module downloads per month](http://img.shields.io/npm/dm/node-node-native-ocr.svg)](https://www.npmjs.org/package/node-node-native-ocr)
 -->
 
-
 # node-native-ocr
 
 The native Node.js bindings to the [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) project using N-API and [node-addon-api](https://github.com/nodejs/node-addon-api).
 
 Benefits:
-- Avoid spawning `tesseract` command line.  
+
+- Avoid spawning `tesseract` command line.
 - Asynchronous I/O: Image reading and processing in insulated event loop backed by [libuv](https://github.com/libuv/libuv).
 - Support to read image data from JavaScript `buffer`s.
 
@@ -24,7 +25,7 @@ Contributions are welcome.
 
 ## Install
 
-Via npm: 
+Via npm:
 
 ```sh
 $ npm install node-native-ocr
@@ -35,17 +36,19 @@ $ npm install node-native-ocr
 ### Recognize an Image Buffer
 
 ```js
-import {
-  recognize
-} from 'node-native-ocr'
+import { recognize } from "node-native-ocr";
 
-import fs from 'fs-extra'
+import fs from "fs-extra";
 
-const filepath = path.join(__dirname, 'test', 'fixtures', 'node-native-ocr.jpg')
+const filepath = path.join(
+  __dirname,
+  "test",
+  "fixtures",
+  "node-native-ocr.jpg"
+);
 
-fs.readFile(filepath).then(recognize).then(console.log) // 'node-native-ocr'
+fs.readFile(filepath).then(recognize).then(console.log); // 'node-native-ocr'
 ```
-
 
 ## recognize(image [, options])
 
@@ -56,8 +59,7 @@ Returns `Promise.<String>` the recognized text if succeeded.
 
 ### `node-native-ocrOptions` `Object`
 
-
-```js
+````js
 {
   // @type `(String|Array.<String>)=eng`,
   //
@@ -70,9 +72,9 @@ Returns `Promise.<String>` the recognized text if succeeded.
   // ```
   // lang: ['eng', 'chi_sim']
   // ```
-  lang: 'eng'
+  lang: "eng";
 }
-```
+````
 
 ## `Promise.reject(error)`
 
@@ -94,15 +96,24 @@ Rejects if tesseract fails to initialize
 ```js
 // For details of `mainWindow: BrowserWindow`, see
 // https://github.com/electron/electron/blob/master/docs/api/browser-window.md
-mainWindow.capturePage({
-  x: 10,
-  y: 10,
-  width: 100,
-  height: 10
-
-}, (data) => {
-  recognize(data.toPNG()).then(console.log)
-})
+mainWindow.capturePage(
+  {
+    x: 10,
+    y: 10,
+    width: 100,
+    height: 10,
+  },
+  (data) => {
+    const appPath = (electron.app || electron.remote.app).getAppPath();
+    const tessdataPath = path.resolve(appPath, ocrPackagePath, "tessdata");
+    recognize(data.toPNG(), {
+      lang: ["eng", "ita"],
+      // output can be 'tsv' or 'txt'
+      output: "txt",
+      tessdataPath,
+    }).then(console.log);
+  }
+);
 ```
 
 ## Compiling Troubles
@@ -126,6 +137,7 @@ resolver:
 ```sh
 $ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ```
+
 ## Why another node OCR package?
 
 After doing a lot of research and trying to compile other node OCR packages for electron without success, I decided to create my own. Based on N-API, which would save me from a lot of trouble.
