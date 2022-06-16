@@ -5,6 +5,7 @@
   "gypfile": true,
   "main": "lib/index.js",
   "module": "src/index.js",
+  "types": "./dist/index.d.ts",
   "devDependencies": {
     "ava": "^0.16.0",
     "babel-cli": "^6.16.0",
