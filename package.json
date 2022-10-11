@@ -1,6 +1,6 @@
 {
   "name": "node-native-ocr",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Native Node.js bindings for the Tesseract OCR project.",
   "gypfile": true,
   "main": "lib/index.js",
@@ -22,18 +22,21 @@
     "codecov": "^2.3.0",
     "fs-extra": "^4.0.1",
     "nyc": "^11.1.0",
+    "prebuild": "^11.0.4",
     "run-script-os": "^1.1.5",
     "shelljs": "^0.8.4"
   },
   "dependencies": {
     "babel-runtime": "^6.23.0",
-    "node-addon-api": "3.1.0"
+    "node-addon-api": "3.1.0",
+    "prebuild-install": "^7.1.1"
   },
   "scripts": {
-    "install": "npm run build-tesseract && node-gyp rebuild",
-    "prepare": "npm run build",
+    "install": "prebuild-install -r napi --verbose || (npm run init && npm run patch && npm run build-tesseract && npm run create-prebuild)",
+    "init": "node ./scripts/init-submodules.js",
+    "patch": "node ./scripts/patch-leptonica.js",
     "configure": "node-gyp configure",
-    "build": "npm run build-cc && npm run build-js",
+    "build": "npm run configure && npm run build-cc && npm run build-js",
     "build-cc": "node-gyp install && node-gyp build",
     "build-js": "run-script-os",
     "build-js:nix": "BABEL_ENV=production babel src --out-dir lib",
@@ -41,9 +44,9 @@
     "clean": "node-gyp clean",
     "clean-tesseract": "node ./scripts/clean-tesseract",
     "build-tesseract": "node ./scripts/build-tesseract",
-    "prepublishOnly": "npm run build",
+    "create-prebuild": "prebuild -t 3 -r napi",
     "// test": "lldb -- /usr/local/bin/node ./node_modules/.bin/ava --verbose --timeout=10s",
-    "test": "npm run build-cc && npm run test-js",
+    "test": "npm run test-js",
     "test-js": "nyc ava --verbose --timeout=10s",
     "report-cov": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "prepack": "npm run clean-tesseract && node ./scripts/prepack"
@@ -93,5 +96,8 @@
     "package-lock.json",
     "package.json",
     "README.md"
-  ]
+  ],
+  "binary": {
+    "napi_versions": [3]
+  }
 }
