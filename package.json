@@ -1,5 +1,5 @@
 {
-  "name": "node-native-ocr",
+  "name": "nnocr",
   "version": "0.3.0",
   "description": "Native Node.js bindings for the Tesseract OCR project.",
   "gypfile": true,
@@ -55,7 +55,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/stoefln/node-native-ocr.git"
+    "url": "git+https://github.com/s1h-org/node-native-ocr.git"
   },
   "ava": {
     "require": "babel-register",
@@ -79,12 +79,12 @@
   "author": "stoefln",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/stoefln/node-native-ocr/issues"
+    "url": "https://github.com/s1h-org/node-native-ocr/issues"
   },
   "engine": {
     "node": ">=8.3.0"
   },
-  "homepage": "https://github.com/stoefln/node-native-ocr#readme",
+  "homepage": "https://github.com/s1h-org/node-native-ocr#readme",
   "files": [
     "cc/",
     "leptonica",
