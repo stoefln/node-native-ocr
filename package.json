@@ -48,8 +48,8 @@
     "// test": "lldb -- /usr/local/bin/node ./node_modules/.bin/ava --verbose --timeout=10s",
     "test": "npm run test-js",
     "test-js": "run-script-os",
-    "test-js:nix": "nyc ava --verbose --timeout=10s",
-    "test-js:windows": "ava --verbose --timeout=10s",
+    "test-js:linux": "nyc ava --verbose --timeout=10s",
+    "test-js:default": "ava --verbose --timeout=10s",
     "report-cov": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "prepack": "npm run clean-tesseract && node ./scripts/prepack"
   },
