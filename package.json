@@ -47,7 +47,9 @@
     "create-prebuild": "prebuild -t 3 -r napi",
     "// test": "lldb -- /usr/local/bin/node ./node_modules/.bin/ava --verbose --timeout=10s",
     "test": "npm run test-js",
-    "test-js": "nyc ava --verbose --timeout=10s",
+    "test-js": "run-script-os",
+    "test-js:nix": "nyc ava --verbose --timeout=10s",
+    "test-js:windows": "ava --verbose --timeout=10s",
     "report-cov": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "prepack": "npm run clean-tesseract && node ./scripts/prepack"
   },
