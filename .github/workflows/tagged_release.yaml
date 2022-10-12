@@ -33,7 +33,7 @@ jobs:
   prebuild-node:
     strategy:
       matrix:
-        os: [ ubuntu-20.04 ]
+        os: [ ubuntu-20.04, windows-2019 ]
         node: [ 16.13.0 ]
         runtime: [ node ]
         arch: [ x64 ]
