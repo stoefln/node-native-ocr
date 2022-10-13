@@ -20,9 +20,13 @@ jobs:
         with:
           node-version: ${{matrix.node}}
       - name: Install
+        env:
+          BUILD_FOR_ARCH: ${{matrix.arch}}
         run: npm ci --unsafe-perm
       - name: Prebuild macOS
         shell: bash
+        env:
+          BUILD_FOR_ARCH: ${{matrix.arch}}
         run: |
           npm run build-tesseract
           npm run create-prebuild -- -a ${{matrix.arch}} -u ${{ secrets.REPO_TOKEN }}

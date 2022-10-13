@@ -1,6 +1,6 @@
 {
   "name": "nnocr",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Native Node.js bindings for the Tesseract OCR project.",
   "gypfile": true,
   "main": "lib/index.js",
