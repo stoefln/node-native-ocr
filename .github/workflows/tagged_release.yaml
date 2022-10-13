@@ -5,12 +5,36 @@ on:
       - v*.*.*
 
 jobs:
+  prebuild-macos:
+    strategy:
+      matrix:
+        os: [ macos-11 ]
+        node: [ 16.13.0 ]
+        arch: [ x64, arm64 ]
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+      - name: Set up node
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{matrix.node}}
+      - name: Install
+        run: npm ci --unsafe-perm
+      - name: Prebuild macOS
+        shell: bash
+        run: |
+          npm run build-tesseract
+          npm run create-prebuild -- -a ${{matrix.arch}} -u ${{ secrets.REPO_TOKEN }}
+      - name: List prebuilds
+        shell: bash
+        run: ls -la ./prebuilds
   prebuild:
     strategy:
       matrix:
         os: [ macos-11, ubuntu-20.04, windows-2019 ]
         node: [ 16.13.0 ]
-        runtime: [ node ]
+        arch: [ x64 ]
     runs-on: ${{matrix.os}}
     steps:
       - name: Set up Git repository
@@ -28,7 +52,7 @@ jobs:
         shell: bash
         run: |
           npm run build-tesseract
-          npm run create-prebuild -- -u ${{ secrets.REPO_TOKEN }}
+          npm run create-prebuild -- -a ${{matrix.arch}} -u ${{ secrets.REPO_TOKEN }}
       - name: List prebuilds
         shell: bash
         run: ls -la ./prebuilds
@@ -36,6 +60,7 @@ jobs:
   deploy:
     needs:
       - prebuild
+      - prebuild-macos
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git repository

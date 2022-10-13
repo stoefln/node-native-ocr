@@ -8,15 +8,26 @@ const cmakeBuildType = 'Release';
 
 shell.config.fatal = true; // thrown an exception on any error
 
-const commonEnvVariables = {
+let commonEnvVariables = {
   CMAKE_BUILD_TYPE: cmakeBuildType,
   CMAKE_INSTALL_PREFIX: '${PWD}/bin',
   BUILD_SHARED_LIBS: 'OFF',
   CMAKE_POSITION_INDEPENDENT_CODE: 'ON',
   CMAKE_MSVC_RUNTIME_LIBRARY: 'MultiThreaded',
   CMAKE_POLICY_DEFAULT_CMP0091: 'NEW',
-  CMAKE_OSX_DEPLOYMENT_TARGET: '10.9',
-  CMAKE_OSX_ARCHITECTURES: '\"arm64;x86_64\"'
+  CMAKE_OSX_DEPLOYMENT_TARGET: '10.9'
+}
+
+if (process.arch === 'arm64') {
+  commonEnvVariables = {
+    ...commonEnvVariables,
+    CMAKE_OSX_ARCHITECTURES: '\"arm64\"'
+  }
+} else {
+  commonEnvVariables = {
+    ...commonEnvVariables,
+    CMAKE_OSX_ARCHITECTURES: '\"x86_64\"'
+  }
 }
 
 // ------ startup ------
