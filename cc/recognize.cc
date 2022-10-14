@@ -46,7 +46,7 @@ public:
 
   void Execute() override
   {
-    printf("Execute()\n");
+    //printf("Execute()\n");
     Pix *image = ReadImage();
 
     if (image == nullptr)
@@ -54,7 +54,7 @@ public:
       SetError("ERR_READ_IMAGE");
       return;
     }
-    printf("execute with lang: %s\n", _lang.c_str());
+    //printf("execute with lang: %s\n", _lang.c_str());
     char *error_code = nullptr;
     char *error_message = nullptr;
     int tess_failed = TessRecognizePix(image, _lang.c_str(), _path.c_str(), _tsvOutput, _outText, error_code, error_message);
@@ -121,7 +121,7 @@ if (!info[2].IsString())
   bool tsvOutput = info[3].As<Boolean>();
   Function callback = info[4].As<Function>();
   
-  printf("\n\nlang: %s\n", lang.c_str());
+  //printf("\n\nlang: %s\n", lang.c_str());
   
   _getBufferInfo(info[0].ToObject(), (void **)(&bufferData), &bufferLength);
   RecognizeWorker *asyncWorker = new RecognizeWorker(
