@@ -25,6 +25,7 @@ jobs:
       - name: Prebuild macOS
         shell: bash
         run: |
+          npm run clean-tesseract
           npm run build-tesseract
           npm run create-prebuild -- -a ${{matrix.arch}} -u ${{ secrets.REPO_TOKEN }}
       - name: List prebuilds
@@ -53,6 +54,7 @@ jobs:
       - name: Prebuild 
         shell: bash
         run: |
+          npm run clean-tesseract
           npm run build-tesseract
           npm run create-prebuild -- -a ${{matrix.arch}} -u ${{ secrets.REPO_TOKEN }}
       - name: List prebuilds
