@@ -5,12 +5,11 @@ on:
       - v*.*.*
 
 jobs:
-  prebuild-node-macos:
+  prebuild-macos:
     strategy:
       matrix:
         os: [ macos-11 ]
         node: [ 16.13.0 ]
-        runtime: [ node ]
         arch: [ x64, arm64 ]
     runs-on: ${{matrix.os}}
     steps:
@@ -21,9 +20,13 @@ jobs:
         with:
           node-version: ${{matrix.node}}
       - name: Install
+        env:
+          BUILD_FOR_ARCH: ${{matrix.arch}}
         run: npm ci --unsafe-perm
       - name: Prebuild macOS
         shell: bash
+        env:
+          BUILD_FOR_ARCH: ${{matrix.arch}}
         run: |
           npm run clean-tesseract
           npm run build-tesseract
@@ -31,12 +34,11 @@ jobs:
       - name: List prebuilds
         shell: bash
         run: ls -la ./prebuilds
-  prebuild-node:
+  prebuild:
     strategy:
       matrix:
         os: [ ubuntu-20.04, windows-2019 ]
         node: [ 16.13.0 ]
-        runtime: [ node ]
         arch: [ x64 ]
     runs-on: ${{matrix.os}}
     steps:
@@ -50,9 +52,13 @@ jobs:
         if: ${{matrix.os == 'windows-2019'}}
         run: npm config set msvs_version 2019
       - name: Install
+        env:
+          BUILD_FOR_ARCH: ${{matrix.arch}}
         run: npm ci --unsafe-perm
       - name: Prebuild 
         shell: bash
+        env:
+          BUILD_FOR_ARCH: ${{matrix.arch}}
         run: |
           npm run clean-tesseract
           npm run build-tesseract
@@ -63,8 +69,8 @@ jobs:
 
   deploy:
     needs:
-      - prebuild-node
-      - prebuild-node-macos
+      - prebuild
+      - prebuild-macos
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git repository
