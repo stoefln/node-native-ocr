@@ -18,7 +18,7 @@ let commonEnvVariables = {
   CMAKE_OSX_DEPLOYMENT_TARGET: '10.9'
 }
 
-const buildForArch = process.env["BUILD_FOR_ARCH"];
+const buildForArch = process.env["BUILD_FOR_ARCH"] || process.arch;
 shell.echo('buildForArch', buildForArch);
 
 if (buildForArch === 'arm64') {
