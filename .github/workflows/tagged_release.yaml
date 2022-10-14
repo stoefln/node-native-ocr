@@ -20,8 +20,6 @@ jobs:
         with:
           node-version: ${{matrix.node}}
       - name: Install
-        env:
-          BUILD_FOR_ARCH: ${{matrix.arch}}
         run: npm ci --unsafe-perm
       - name: Prebuild macOS
         shell: bash
@@ -51,8 +49,6 @@ jobs:
         if: ${{matrix.os == 'windows-2019'}}
         run: npm config set msvs_version 2019
       - name: Install
-        env:
-          BUILD_FOR_ARCH: ${{matrix.arch}}
         run: npm ci --unsafe-perm
       - name: Prebuild 
         shell: bash
