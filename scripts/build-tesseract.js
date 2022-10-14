@@ -1,14 +1,14 @@
-var fs = require('fs');
-const { join } = require('path');
-var path = require('path');
-var shell = require('shelljs');
+const fs = require('fs');
+const path = require('path');
+const shell = require('shelljs');
+const process = require("process");
 
 const requiredCMakeVersion = '3.15';
 const cmakeBuildType = 'Release';
 
 shell.config.fatal = true; // thrown an exception on any error
 
-const commonEnvVariables = {
+let commonEnvVariables = {
   CMAKE_BUILD_TYPE: cmakeBuildType,
   CMAKE_INSTALL_PREFIX: '${PWD}/bin',
   BUILD_SHARED_LIBS: 'OFF',
@@ -16,6 +16,23 @@ const commonEnvVariables = {
   CMAKE_MSVC_RUNTIME_LIBRARY: 'MultiThreaded',
   CMAKE_POLICY_DEFAULT_CMP0091: 'NEW',
   CMAKE_OSX_DEPLOYMENT_TARGET: '10.9'
+}
+
+const buildForArch = process.env["BUILD_FOR_ARCH"];
+shell.echo('buildForArch', buildForArch);
+
+if (buildForArch === 'arm64') {
+  shell.echo('arm64 build');
+  commonEnvVariables = {
+    ...commonEnvVariables,
+    CMAKE_OSX_ARCHITECTURES: '\"arm64\"'
+  }
+} else if (buildForArch === 'x64') {
+  shell.echo('x64 build');
+  commonEnvVariables = {
+    ...commonEnvVariables,
+    CMAKE_OSX_ARCHITECTURES: '\"x86_64\"'
+  }
 }
 
 // ------ startup ------
