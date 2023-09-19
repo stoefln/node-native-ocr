@@ -4,11 +4,11 @@
 #include "recognize.h"
 #include "ocr.h"
 
+using Napi::Boolean;
 using Napi::Env;
+using Napi::Function;
 using Napi::HandleScope;
 using Napi::String;
-using Napi::Boolean;
-using Napi::Function;
 
 class RecognizeWorker : public Napi::AsyncWorker
 {
@@ -33,20 +33,20 @@ public:
                   std::string &path,
                   bool tsvOutput,
                   Function &callback)
-      : Napi::AsyncWorker(callback), _buffer(buffer), _length(length), _lang(lang), _path(path), _tsvOutput(tsvOutput)  {
-
-      }
+      : Napi::AsyncWorker(callback), _buffer(buffer), _length(length), _lang(lang), _path(path), _tsvOutput(tsvOutput)
+  {
+  }
 
   ~RecognizeWorker() {}
 
-  void OnOK () override {
+  void OnOK() override
+  {
     HandleScope scope(Env());
     Callback().Call({Env().Null(), String::New(Env(), _outText)});
   }
 
   void Execute() override
   {
-    //printf("Execute()\n");
     Pix *image = ReadImage();
 
     if (image == nullptr)
@@ -54,18 +54,15 @@ public:
       SetError("ERR_READ_IMAGE");
       return;
     }
-    //printf("execute with lang: %s\n", _lang.c_str());
-    char *error_code = nullptr;
-    char *error_message = nullptr;
+    char error_code[50];
+    char error_message[200];
+
     int tess_failed = TessRecognizePix(image, _lang.c_str(), _path.c_str(), _tsvOutput, _outText, error_code, error_message);
-    
+
     if (tess_failed)
     {
-      //printf("E2\n");
-      //SetError(error_code, error_message);
-      std::string msg("Tesseract Error: ");
-      msg += error_message;
-      SetError(msg);
+      printf(error_message);
+      SetError(error_code);
       return;
     }
   }
@@ -103,7 +100,7 @@ void Recognize(const Napi::CallbackInfo &info)
     return;
   }
 
-if (!info[2].IsString())
+  if (!info[2].IsString())
   {
     Napi::TypeError::New(env, "3. param needs to be a string!").ThrowAsJavaScriptException();
     return;
@@ -120,9 +117,9 @@ if (!info[2].IsString())
   std::string tessDataPath = info[2].As<String>().Utf8Value();
   bool tsvOutput = info[3].As<Boolean>();
   Function callback = info[4].As<Function>();
-  
-  //printf("\n\nlang: %s\n", lang.c_str());
-  
+
+  // printf("\n\nlang: %s\n", lang.c_str());
+
   _getBufferInfo(info[0].ToObject(), (void **)(&bufferData), &bufferLength);
   RecognizeWorker *asyncWorker = new RecognizeWorker(
       bufferData,

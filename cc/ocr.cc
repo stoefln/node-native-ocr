@@ -8,7 +8,7 @@ int TessRecognizePix (Pix *image,
   tesseract::TessBaseAPI *api = new tesseract::TessBaseAPI();
 
   int failed = api->Init(datapath, lang);
-  if (failed) {
+  if (failed != 0) {
     pixDestroy(&image);
 
     const char *code = "ERR_INIT_TESSER";
