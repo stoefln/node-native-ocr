@@ -2,7 +2,7 @@ name: Create tagged release
 on:
   push:
     tags:
-      - v*.*.*
+      - v*
 
 jobs:
   prebuild-macos:
