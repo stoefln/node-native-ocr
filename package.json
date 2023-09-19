@@ -45,6 +45,7 @@
     "clean-tesseract": "node ./scripts/clean-tesseract",
     "build-tesseract": "node ./scripts/build-tesseract",
     "create-prebuild": "prebuild -t 3 -r napi",
+    "rebuild-and-test": "rm -f prebuilds/*; npm run create-prebuild; npm run test",
     "// test": "lldb -- /usr/local/bin/node ./node_modules/.bin/ava --verbose --timeout=10s",
     "test": "npm run test-js",
     "test-js": "run-script-os",

@@ -177,8 +177,10 @@ This is the original reference: https://www.tomrochette.com/tesseract-tsv-format
 To build the node-native-ocr project for testing, navigate into the node-native-ocr directory and exec
 `npm run install`
 
-I had problems with some node versions. A version which definitelly worked for me was v11.15.0.
+I had problems with some node versions. A version which definitelly worked for me was v16.13.0.
 After changing the code, and rebuilding the project, just run `npm run test`
+
+To test changes, compilation is needed before. prebuild will only recompile if there is no precompiled version for your platform in the "prebuilds" dir. That's we have to delete it before starting the compilation. You can use `npm run rebuild-and-test` for that
 
 ## License
 
