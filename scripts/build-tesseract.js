@@ -1,12 +1,12 @@
-const fs = require('fs');
-const path = require('path');
-const shell = require('shelljs');
-const process = require("process");
+const fs = require('fs')
+const path = require('path')
+const shell = require('shelljs')
+const process = require('process')
 
-const requiredCMakeVersion = '3.15';
-const cmakeBuildType = 'Release';
+const requiredCMakeVersion = '3.15'
+const cmakeBuildType = 'Release'
 
-shell.config.fatal = true; // thrown an exception on any error
+shell.config.fatal = true // thrown an exception on any error
 
 let commonEnvVariables = {
   CMAKE_BUILD_TYPE: cmakeBuildType,
@@ -18,179 +18,204 @@ let commonEnvVariables = {
   CMAKE_OSX_DEPLOYMENT_TARGET: '10.9'
 }
 
-const buildForArch = process.env["BUILD_FOR_ARCH"] || process.arch;
-shell.echo('buildForArch', buildForArch);
+const buildForArch = process.env['BUILD_FOR_ARCH'] || process.arch
+shell.echo('buildForArch', buildForArch)
 
 if (buildForArch === 'arm64') {
-  shell.echo('arm64 build');
+  shell.echo('arm64 build')
   commonEnvVariables = {
     ...commonEnvVariables,
-    CMAKE_OSX_ARCHITECTURES: '\"arm64\"'
+    CMAKE_OSX_ARCHITECTURES: '"arm64"'
   }
 } else if (buildForArch === 'x64') {
-  shell.echo('x64 build');
+  shell.echo('x64 build')
   commonEnvVariables = {
     ...commonEnvVariables,
-    CMAKE_OSX_ARCHITECTURES: '\"x86_64\"'
+    CMAKE_OSX_ARCHITECTURES: '"x86_64"'
   }
 }
 
 // ------ startup ------
-shell.echo('build-tesseract script start.');
+shell.echo('build-tesseract script start.')
 
 if (!shell.which('git')) {
-  shell.echo('This script requires Git.');
-  shell.exit(1);
+  shell.echo('This script requires Git.')
+  shell.exit(1)
 }
 
-checkCMakeVersion();
+checkCMakeVersion()
 
-const homeDir = path.resolve(__dirname,'..');
-shell.cd(homeDir);
-shell.echo(`Working directory: ${homeDir}`);
+const homeDir = path.resolve(__dirname, '..')
+shell.cd(homeDir)
+shell.echo(`Working directory: ${homeDir}`)
 
 // ------ libraries ------
-buildLibjpeg ('libjpeg');
-buildLeptonica ('leptonica');
-buildTesseract ('tesseract');
+downloadAndBuildLib('https://github.com/libsdl-org/libtiff.git', 'libtiff', dirName => {
+  const filePath = path.resolve(__dirname, '..', dirName, 'CMakeLists.txt')
+  shell.echo(`Patching ${filePath} for Mac.`)
+  let cmakeConfig = fs.readFileSync(filePath, 'utf8')
+  // disable codecs: otherwise we will get a linker error during compilation of tesseract
+  cmakeConfig = cmakeConfig.replace('include(LZMACodec)', '# include(LZMACodec)')
+  cmakeConfig = cmakeConfig.replace('include(WebPCodec)', '# include(WebPCodec)')
+  cmakeConfig = cmakeConfig.replace('include(ZSTDCodec)', '# include(ZSTDCodec)')
 
-shell.echo('build-tesseract script end.');
+  fs.writeFileSync(filePath, cmakeConfig, 'utf8')
+  shell.echo(`Disabled LZMA, Webp and ZSTD Codecs. Not needed for tesseract.`)
+})
+
+downloadAndBuildLib('https://github.com/madler/zlib.git', 'zlib')
+downloadAndBuildLib('https://github.com/glennrp/libpng.git', 'libpng')
+downloadAndBuildLib('https://github.com/tamaskenez/libjpeg-cmake.git', 'libjpeg')
+buildLeptonica('leptonica')
+buildTesseract('tesseract')
+
+shell.echo('build-tesseract script end.')
 
 function checkCMakeVersion() {
-  let versionOK = false;
-  shell.echo(`This script requires CMake version ${requiredCMakeVersion} or later.`);
+  let versionOK = false
+  shell.echo(`This script requires CMake version ${requiredCMakeVersion} or later.`)
   if (!shell.which('cmake')) {
-    shell.echo('CMake not found on this system.');
+    shell.echo('CMake not found on this system.')
   } else {
-    const reply = shell.exec('cmake --version', {silent: true});
-    foundVersion = (/\d+.\d+.\d+/mg).exec(reply)[0];
-    versionOK = checkVersion(foundVersion, requiredCMakeVersion) >= 0;
+    const reply = shell.exec('cmake --version', { silent: true })
+    foundVersion = /\d+.\d+.\d+/gm.exec(reply)[0]
+    versionOK = checkVersion(foundVersion, requiredCMakeVersion) >= 0
     if (versionOK) {
-      shell.echo(`CMake ${foundVersion} found on this system.`);
+      shell.echo(`CMake ${foundVersion} found on this system.`)
     } else {
-      shell.echo(`CMake ${foundVersion} found on this system is too old.`);
+      shell.echo(`CMake ${foundVersion} found on this system is too old.`)
     }
   }
 
-  if (!versionOK) shell.exit(1);
+  if (!versionOK) shell.exit(1)
 }
 
 // https://codereview.stackexchange.com/questions/236647/comparing-version-numbers-with-javascript
-function checkVersion (a, b) {
-  const x = a.split('.').map(e => parseInt(e, 10));
-  const y = b.split('.').map(e => parseInt(e, 10));
+function checkVersion(a, b) {
+  const x = a.split('.').map(e => parseInt(e, 10))
+  const y = b.split('.').map(e => parseInt(e, 10))
 
   for (const i in x) {
-      y[i] = y[i] || 0;
-      if (x[i] === y[i]) {
-          continue;
-      } else if (x[i] > y[i]) {
-          return 1;
-      } else {
-          return -1;
-      }
+    y[i] = y[i] || 0
+    if (x[i] === y[i]) {
+      continue
+    } else if (x[i] > y[i]) {
+      return 1
+    } else {
+      return -1
+    }
   }
-  return y.length > x.length ? -1 : 0;
+  return y.length > x.length ? -1 : 0
 }
 
-function buildLibjpeg (dirName) {
-  shell.echo('Building libjpeg.');
+function downloadAndBuildLib(repoUrl, dirName, patchConfig) {
+  printTitle('Building ' + dirName)
 
   if (shell.test('-e', dirName)) {
-    shell.echo(`The ${dirName} directory already exists.`);
+    shell.echo(`The ${dirName} directory already exists.`)
   } else {
-    shell.exec(`git clone https://github.com/tamaskenez/libjpeg-cmake.git ${dirName}`);
+    shell.exec(`git clone ${repoUrl} ${dirName}`)
   }
 
-  runCMakeBuild (dirName, cmakeBuildType);
+  if (patchConfig) patchConfig(dirName)
+  runCMakeBuild(dirName, cmakeBuildType)
 }
 
-function buildLeptonica (dirName) {
-  shell.echo('Building Leptonica.');
+function buildLeptonica(dirName) {
+  printTitle('\nBuilding Leptonica.')
 
-  runCMakeBuild (dirName, cmakeBuildType, 
+  runCMakeBuild(
+    dirName,
+    cmakeBuildType,
     {
       SW_BUILD: 'OFF',
       CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
       CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: process.platform === 'darwin' ? 'FALSE' : 'TRUE',
-      CMAKE_PREFIX_PATH: '${PWD}/../../libjpeg/build',
-      CMAKE_INCLUDE_PATH: '${PWD}/../../libjpeg/build/bin/include',
-      CMAKE_LIBRARY_PATH: '${PWD}/../../libjpeg/build/bin/lib'
-    },     
-    (dirName, cmakeConfig, envVars) => { // patch config_auto.h between config and build
+      CMAKE_PREFIX_PATH: '"${PWD}/../../libtiff/build;${PWD}/../../libjpeg/build;${PWD}/../../zlib/build;${PWD}/../../libpng/build"',
+      CMAKE_INCLUDE_PATH:
+        '"${PWD}/../../libtiff/build/bin/include;${PWD}/../../libjpeg/build/bin/include;${PWD}/../../zlib/build/bin/include;${PWD}/../../libpng/build/bin/include"',
+      CMAKE_LIBRARY_PATH:
+        '"${PWD}/../../libtiff/build/bin/lib;${PWD}/../../libjpeg/build/bin/lib;${PWD}/../../zlib/build/bin/lib;${PWD}/../../libpng/build/bin/lib"'
+    },
+    (dirName, cmakeConfig, envVars) => {
+      // patch config_auto.h between config and build
       if (process.platform === 'darwin') {
-        const filePath = path.resolve(__dirname,'..',dirName,'build','src','config_auto.h');
-        shell.echo(`Patching ${filePath} for Mac.`);
-        let autoConfig = fs.readFileSync(filePath, 'utf8');
-        const searchText = /^#define\s+HAVE_FMEMOPEN\s+1/gm;
-        const replacementText = '#define HAVE_FMEMOPEN 0';
-        const foundText = autoConfig.match(searchText);
+        const filePath = path.resolve(__dirname, '..', dirName, 'build', 'src', 'config_auto.h')
+        shell.echo(`Patching ${filePath} for Mac.`)
+        let autoConfig = fs.readFileSync(filePath, 'utf8')
+        const searchText = /^#define\s+HAVE_FMEMOPEN\s+1/gm
+        const replacementText = '#define HAVE_FMEMOPEN 0'
+        const foundText = autoConfig.match(searchText)
         if (foundText) {
-          const updatedConfig = autoConfig.replace(searchText, replacementText);
-          fs.writeFileSync(filePath, updatedConfig, 'utf8');
-          shell.echo(`The '${foundText}' directive was replaced with '${replacementText}'.`);
+          const updatedConfig = autoConfig.replace(searchText, replacementText)
+          fs.writeFileSync(filePath, updatedConfig, 'utf8')
+          shell.echo(`The '${foundText}' directive was replaced with '${replacementText}'.`)
         } else {
-          shell.echo(`The '#define HAVE_FMEMOPEN 1' directive was not found.`);
-          shell.echo('This may lead to a build that does not run on all macOS machines.');
+          shell.echo(`The '#define HAVE_FMEMOPEN 1' directive was not found.`)
+          shell.echo('This may lead to a build that does not run on all macOS machines.')
         }
       }
     }
-  );
+  )
 }
 
-function buildTesseract (dirName) {
-  shell.echo('Building Tesseract.');
+function buildTesseract(dirName) {
+  printTitle('\nBuilding Tesseract.')
 
-  runCMakeBuild (dirName, cmakeBuildType, 
-    {
-      STATIC: 'ON',
-      CPPAN_BUILD: 'OFF',
-      BUILD_TRAINING_TOOLS: 'OFF',
-      AUTO_OPTIMIZE: 'OFF',
-      Leptonica_DIR: '../leptonica/build'
-    }
-  );
+  runCMakeBuild(dirName, cmakeBuildType, {
+    STATIC: 'ON',
+    CPPAN_BUILD: 'OFF',
+    BUILD_TRAINING_TOOLS: 'OFF',
+    AUTO_OPTIMIZE: 'OFF',
+    Leptonica_DIR: '../leptonica/build'
+  })
 }
 
-function runCMakeBuild (dirName, cmakeBuildType, envVars, patchConfig) {
-  createAndEnterBuildDir(dirName);
+function runCMakeBuild(dirName, cmakeBuildType, envVars, patchConfig) {
+  createAndEnterBuildDir(dirName)
 
-  let cmakeCmd = 'cmake';
-  cmakeCmd += formatEnvVars (envVars);
-  cmakeCmd += formatEnvVars (commonEnvVariables);
-  cmakeCmd += ' ..';
+  let cmakeCmd = 'cmake'
+  cmakeCmd += formatEnvVars(envVars)
+  cmakeCmd += formatEnvVars(commonEnvVariables)
+  cmakeCmd += ' ../ '
 
   shell.echo(`Configuring a ${cmakeBuildType} build.`)
-  shell.echo(cmakeCmd);
-  shell.exec(cmakeCmd);
+  shell.echo(cmakeCmd)
+  shell.exec(cmakeCmd)
 
-  if (patchConfig) patchConfig(dirName, cmakeBuildType, envVars);
+  if (patchConfig) patchConfig(dirName, cmakeBuildType, envVars)
 
   shell.echo(`Creating a ${cmakeBuildType} build.`)
-  shell.exec(`cmake --build . --config ${cmakeBuildType}`);
+  shell.exec(`cmake --build . --config ${cmakeBuildType}`)
 
   shell.echo(`Installing a ${cmakeBuildType} build.`)
-  shell.exec('cmake --install .');
+  shell.exec('cmake --install .')
 
-  leaveBuildDir();
+  leaveBuildDir()
 }
 
-function createAndEnterBuildDir (dirName) {
-  shell.pushd('-q', dirName);
-  if (!shell.test('-e', 'build')) shell.mkdir('build');
-  shell.pushd('-q', 'build');
+function createAndEnterBuildDir(dirName) {
+  shell.pushd('-q', dirName)
+  if (!shell.test('-e', 'build')) shell.mkdir('build')
+  shell.pushd('-q', 'build')
 }
 
 function leaveBuildDir() {
-  shell.popd('-q');
-  shell.popd('-q');
+  shell.popd('-q')
+  shell.popd('-q')
 }
 
-function formatEnvVars (envVars) {
-  const continuation = process.platform === 'win32' ? '' : ' \\\n';
-  let args = '';
+function formatEnvVars(envVars) {
+  const continuation = process.platform === 'win32' ? '' : ' \\\n'
+  let args = ''
   for (key in envVars) {
-    args += ` -D${key}=${envVars[key]}${continuation}`;
+    args += ` -D${key}=${envVars[key]}${continuation}`
   }
-  return args;
+  return args
+}
+
+function printTitle(title) {
+  console.log('\n' + '='.repeat(title.length))
+  console.log(title)
+  console.log('='.repeat(title.length))
 }

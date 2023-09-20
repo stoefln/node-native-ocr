@@ -17,14 +17,18 @@
           'libraries': [
             '../tesseract/build/bin/lib/libtesseract.a',
             '../leptonica/build/bin/lib/libleptonica.a',
-            '../libjpeg/build/bin/lib/libjpeg.a'
+            '../libjpeg/build/bin/lib/libjpeg.a',
+            '../libpng/build/bin/lib/libpng16.a',
+            '../libtiff/build/bin/lib/libtiff.a'
           ]
         }],
         [ "OS=='win'", {
           'libraries': [
             '../tesseract/build/bin/lib/tesseract41.lib',
             '../leptonica/build/bin/lib/leptonica-1.80.0.lib',
-            '../libjpeg/build/bin/lib/libjpeg.lib'
+            '../libjpeg/build/bin/lib/libjpeg.lib',
+            '../libpng/build/bin/lib/libpng16.lib',
+            '../libtiff/build/bin/lib/libtiff.lib'
           ]
         }]
       ],
