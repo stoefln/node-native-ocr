@@ -48,15 +48,11 @@ test('recognize, multiple languages', async t => {
   t.is(result, '“Creativity is the\ngreatest rebellion in\nexistence.”\n\nOsho')
 })
 
-/*this is still crashing. todo: fix
-test('recognize non existing', async t => {
-  const buffer = await fs.readFile(non_existing)
-  try{
-
-    const result = await recognize(buffer)
-    console.log('reeesult', result)
-  } catch(e){
-    console.log('eeerror', e)
-    t.is(true)
-  }
-})*/
+test('recognize with invalid buffer', async t => {
+  const invalidBuffer = Buffer.from('not a real image');
+  const error = await t.throwsAsync(async () => {
+    await recognize(invalidBuffer);
+  });
+  t.is(error.code, 'ERR_READ_IMAGE');
+  t.is(error.message, 'Fails to read image.');
+})

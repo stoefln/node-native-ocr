@@ -49,14 +49,14 @@ const makePromise = (method) => {
   return (arg, options) => new Promise((resolve, reject) => {
     options = handleOptions(options)
     
-    bindings[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', (err, text) => {
+    bindings[method](arg, options.lang, options.tessdataPath, options.format === 'tsv', (err, text) => {
       if (err) {
-        console.log('error:', err)
+        // console.log('error:', err)
         const error = new Error(text)
         error.code = err
         return reject(error)
       } else {
-        console.log('success:', text)
+        // console.log('success:', text)
       }
 
       resolve(text.trim())

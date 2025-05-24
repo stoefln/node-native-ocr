@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/stoefln/node-node-native-ocr.svg?branch=master)](https://travis-ci.org/stoefln/node-node-native-ocr)
+[![CI](https://github.com/stoefln/node-native-ocr/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/stoefln/node-native-ocr/actions/workflows/ci.yaml)
 [![Coverage](https://codecov.io/gh/stoefln/node-node-native-ocr/branch/master/graph/badge.svg)](https://codecov.io/gh/stoefln/node-node-native-ocr)
 
 <!-- optional appveyor tst
@@ -73,6 +73,21 @@ Returns `Promise.<String>` the recognized text if succeeded.
   // lang: ['eng', 'chi_sim']
   // ```
   lang: "eng";
+
+  // @type `String='txt'`,
+  //
+  // Specifies the output format.
+  //   `'txt'` (default): Plain text output.
+  //   `'tsv'`: Tab-separated values. See "TSV format description" section for details.
+  format: "txt";
+
+  // @type `String`,
+  //
+  // Specifies the custom path to the `tessdata` directory.
+  // The library attempts to automatically find the `tessdata` directory
+  // (e.g., within `node_modules/node-native-ocr/tessdata` or a similar path in Electron environments).
+  // Use this option if you have installed language files elsewhere.
+  tessdataPath: "/usr/local/share/tessdata"; // Example path
 }
 ````
 
@@ -105,12 +120,14 @@ mainWindow.capturePage(
   },
   (data) => {
     const appPath = (electron.app || electron.remote.app).getAppPath();
-    const tessdataPath = path.resolve(appPath, ocrPackagePath, "tessdata");
+    // Example: tessdataPath is automatically discovered in typical setups,
+    // but can be overridden if language files are in a custom location.
+    // const tessdataPath = path.resolve(appPath, ocrPackagePath, "tessdata"); 
     recognize(data.toPNG(), {
       lang: ["eng", "ita"],
-      // output can be 'tsv' or 'txt'
-      output: "txt",
-      tessdataPath,
+      // format can be 'tsv' or 'txt'
+      format: "txt", 
+      // tessdataPath: tessdataPath, // Uncomment and set if needed
     }).then(console.log);
   }
 );
