@@ -1,89 +1,117 @@
-name: Create tagged release
+name: Build & Publish tagged release
+
 on:
   push:
     tags:
       - v*
 
-jobs:
-  prebuild-macos:
-    strategy:
-      matrix:
-        os: [ macos-11 ]
-        node: [ 16.13.0 ]
-        arch: [ x64, arm64 ]
-    runs-on: ${{matrix.os}}
-    steps:
-      - name: Set up Git repository
-        uses: actions/checkout@v2
-      - name: Set up node
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{matrix.node}}
-      - name: Install
-        env:
-          BUILD_FOR_ARCH: ${{matrix.arch}}
-        run: npm ci --unsafe-perm
-      - name: Prebuild macOS
-        shell: bash
-        env:
-          BUILD_FOR_ARCH: ${{matrix.arch}}
-        run: |
-          npm run clean-tesseract
-          npm run build-tesseract
-          npm run create-prebuild -- -a ${{matrix.arch}} -u ${{ secrets.REPO_TOKEN }}
-      - name: List prebuilds
-        shell: bash
-        run: ls -la ./prebuilds
-  prebuild:
-    strategy:
-      matrix:
-        os: [ ubuntu-20.04, windows-2019 ]
-        node: [ 16.13.0 ]
-        arch: [ x64 ]
-    runs-on: ${{matrix.os}}
-    steps:
-      - name: Set up Git repository
-        uses: actions/checkout@v2
-      - name: Set up node
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{matrix.node}}
-      - name: Configure msvs version on Windows
-        if: ${{matrix.os == 'windows-2019'}}
-        run: npm config set msvs_version 2019
-      - name: Install
-        env:
-          BUILD_FOR_ARCH: ${{matrix.arch}}
-        run: npm ci --unsafe-perm
-      - name: Prebuild 
-        shell: bash
-        env:
-          BUILD_FOR_ARCH: ${{matrix.arch}}
-        run: |
-          npm run clean-tesseract
-          npm run build-tesseract
-          npm run create-prebuild -- -a ${{matrix.arch}} -u ${{ secrets.REPO_TOKEN }}
-      - name: List prebuilds
-        shell: bash
-        run: ls -la ./prebuilds
+permissions:
+  id-token: write
+  contents: read
 
-  deploy:
-    needs:
-      - prebuild
-      - prebuild-macos
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            target: darwin-arm64
+            node_arch: arm64
+            build_for_arch: arm64
+          - os: macos-14
+            target: darwin-x64
+            node_arch: x64
+            build_for_arch: x64
+          - os: windows-latest
+            target: win32-x64
+            node_arch: x64
+            build_for_arch: x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rosetta (macOS x64)
+        if: runner.os == 'macOS' && matrix.target == 'darwin-x64'
+        run: softwareupdate --install-rosetta --agree-to-license || true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          architecture: ${{ matrix.node_arch }}
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Windows compiler tools
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build native dependencies
+        env:
+          BUILD_FOR_ARCH: ${{ matrix.build_for_arch }}
+        run: |
+          npm run clean-tesseract
+          npm run build-tesseract
+
+      - name: Build prebuilds
+        run: npm run prebuildify
+
+      - name: Verify target prebuild exists
+        run: |
+          node -e "const fs=require('fs'); const path=require('path'); const dir=path.join('prebuilds','${{ matrix.target }}'); if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir).filter(name => name.endsWith('.node')); if(files.length===0) throw new Error('No .node prebuild found in '+dir); console.log('Found prebuilds:', files.join(', '));"
+
+      - name: Upload prebuilds artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebuilds-${{ matrix.target }}
+          path: prebuilds/
+          retention-days: 1
+
+  publish:
+    needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Git repository
-        uses: actions/checkout@v2
-      - name: Set up node
-        uses: actions/setup-node@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
-      - name: Install
-        run: npm ci --unsafe-perm
-      - name: Build
-        run: npm run build-js
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Download all prebuilds
+        uses: actions/download-artifact@v4
+        with:
+          path: prebuilds-all
+          pattern: prebuilds-*
+          merge-multiple: true
+
+      - name: Merge prebuilds into package
+        run: |
+          mkdir -p prebuilds
+          cp -r prebuilds-all/* prebuilds/
+          ls -la prebuilds/
+          find prebuilds -name '*.node' -type f
+
+      - name: Install dependencies (skip scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Show package contents
+        run: npm pack --dry-run
+
       - name: Publish tagged release
-        uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_RELEASE_PUBLISH_TOKEN }}
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_PUBLISH_TOKEN }}

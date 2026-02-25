@@ -1,9 +1,9 @@
 {
   "name": "node-native-ocr",
-  "version": "0.3.9",
+  "version": "0.3.11",
   "description": "Native Node.js bindings for the Tesseract OCR project.",
   "gypfile": true,
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "module": "src/index.js",
   "types": "./dist/index.d.ts",
   "devDependencies": {
@@ -23,16 +23,17 @@
     "fs-extra": "^4.0.1",
     "nyc": "^11.1.0",
     "prebuild": "^12.0.0",
+    "prebuildify": "^6.0.1",
     "run-script-os": "^1.1.5",
     "shelljs": "^0.8.4"
   },
   "dependencies": {
     "babel-runtime": "^6.23.0",
     "node-addon-api": "3.1.0",
-    "prebuild-install": "^7.1.1"
+    "node-gyp-build": "^4.8.4"
   },
   "scripts": {
-    "install": "prebuild-install -r napi --verbose || (npm run init && npm run patch && npm run build-tesseract && npm run create-prebuild)",
+    "install": "node-gyp-build",
     "init": "node ./scripts/init-submodules.js",
     "patch": "node ./scripts/patch-leptonica.js",
     "configure": "node-gyp configure",
@@ -44,6 +45,7 @@
     "clean": "node-gyp clean",
     "clean-tesseract": "node ./scripts/clean-tesseract",
     "build-tesseract": "node ./scripts/build-tesseract",
+    "prebuildify": "prebuildify --napi --strip",
     "create-prebuild": "prebuild -t 3 -r napi",
     "rebuild-and-test": "rm -f prebuilds/*; npm run create-prebuild; npm run test",
     "// test": "lldb -- /usr/local/bin/node ./node_modules/.bin/ava --verbose --timeout=10s",
@@ -87,20 +89,17 @@
   },
   "homepage": "https://github.com/stoefln/node-native-ocr#readme",
   "files": [
-    "cc/",
-    "leptonica",
-    "libjpeg",
-    "scripts/",
     "src/",
+    "dist/",
     "tessdata/",
-    "tesseract",
-    "binding.gyp",
+    "prebuilds/",
     "LICENSE-MIT",
-    "package-lock.json",
     "package.json",
     "README.md"
   ],
   "binary": {
-    "napi_versions": [3]
+    "napi_versions": [
+      3
+    ]
   }
 }
