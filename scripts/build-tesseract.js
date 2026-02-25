@@ -21,6 +21,13 @@ let commonEnvVariables = {
 const buildForArch = process.env['BUILD_FOR_ARCH'] || process.arch
 shell.echo('buildForArch', buildForArch)
 
+const dependencyPrefixPath =
+  '"${PWD}/../../zlib/build/bin;${PWD}/../../libpng/build/bin;${PWD}/../../libjpeg/build/bin;${PWD}/../../libtiff/build/bin"'
+const dependencyIncludePath =
+  '"${PWD}/../../zlib/build/bin/include;${PWD}/../../libpng/build/bin/include;${PWD}/../../libjpeg/build/bin/include;${PWD}/../../libtiff/build/bin/include"'
+const dependencyLibraryPath =
+  '"${PWD}/../../zlib/build/bin/lib;${PWD}/../../libpng/build/bin/lib;${PWD}/../../libjpeg/build/bin/lib;${PWD}/../../libtiff/build/bin/lib"'
+
 if (buildForArch === 'arm64') {
   shell.echo('arm64 build')
   commonEnvVariables = {
@@ -50,7 +57,27 @@ shell.cd(homeDir)
 shell.echo(`Working directory: ${homeDir}`)
 
 // ------ libraries ------
-downloadAndBuildLib('https://github.com/libsdl-org/libtiff.git', 'libtiff', dirName => {
+downloadAndBuildLib('https://github.com/madler/zlib.git', 'zlib')
+
+downloadAndBuildLib(
+  'https://github.com/glennrp/libpng.git',
+  'libpng',
+  null,
+  {
+    CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
+    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'FALSE',
+    CMAKE_PREFIX_PATH: '"${PWD}/../../zlib/build/bin"',
+    CMAKE_INCLUDE_PATH: '"${PWD}/../../zlib/build/bin/include"',
+    CMAKE_LIBRARY_PATH: '"${PWD}/../../zlib/build/bin/lib"'
+  }
+)
+
+downloadAndBuildLib('https://github.com/libjpeg-turbo/libjpeg-turbo.git', 'libjpeg')
+
+downloadAndBuildLib(
+  'https://github.com/libsdl-org/libtiff.git',
+  'libtiff',
+  dirName => {
   const filePath = path.resolve(__dirname, '..', dirName, 'CMakeLists.txt')
   shell.echo(`Patching ${filePath} for Mac.`)
   let cmakeConfig = fs.readFileSync(filePath, 'utf8')
@@ -61,11 +88,20 @@ downloadAndBuildLib('https://github.com/libsdl-org/libtiff.git', 'libtiff', dirN
 
   fs.writeFileSync(filePath, cmakeConfig, 'utf8')
   shell.echo(`Disabled LZMA, Webp and ZSTD Codecs. Not needed for tesseract.`)
-})
+  },
+  {
+    'tiff-tools': 'OFF',
+    'tiff-tests': 'OFF',
+    'tiff-contrib': 'OFF',
+    'tiff-docs': 'OFF',
+    CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
+    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'FALSE',
+    CMAKE_PREFIX_PATH: dependencyPrefixPath,
+    CMAKE_INCLUDE_PATH: dependencyIncludePath,
+    CMAKE_LIBRARY_PATH: dependencyLibraryPath
+  }
+)
 
-downloadAndBuildLib('https://github.com/madler/zlib.git', 'zlib')
-downloadAndBuildLib('https://github.com/glennrp/libpng.git', 'libpng')
-downloadAndBuildLib('https://github.com/tamaskenez/libjpeg-cmake.git', 'libjpeg')
 buildLeptonica('leptonica')
 buildTesseract('tesseract')
 
@@ -108,7 +144,7 @@ function checkVersion(a, b) {
   return y.length > x.length ? -1 : 0
 }
 
-function downloadAndBuildLib(repoUrl, dirName, patchConfig) {
+function downloadAndBuildLib(repoUrl, dirName, patchConfig, envVars) {
   printTitle('Building ' + dirName)
 
   if (shell.test('-e', dirName)) {
@@ -118,7 +154,7 @@ function downloadAndBuildLib(repoUrl, dirName, patchConfig) {
   }
 
   if (patchConfig) patchConfig(dirName)
-  runCMakeBuild(dirName, cmakeBuildType)
+  runCMakeBuild(dirName, cmakeBuildType, envVars)
 }
 
 function buildLeptonica(dirName) {
@@ -130,12 +166,10 @@ function buildLeptonica(dirName) {
     {
       SW_BUILD: 'OFF',
       CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
-      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: process.platform === 'darwin' ? 'FALSE' : 'TRUE',
-      CMAKE_PREFIX_PATH: '"${PWD}/../../libtiff/build;${PWD}/../../libjpeg/build;${PWD}/../../zlib/build;${PWD}/../../libpng/build"',
-      CMAKE_INCLUDE_PATH:
-        '"${PWD}/../../libtiff/build/bin/include;${PWD}/../../libjpeg/build/bin/include;${PWD}/../../zlib/build/bin/include;${PWD}/../../libpng/build/bin/include"',
-      CMAKE_LIBRARY_PATH:
-        '"${PWD}/../../libtiff/build/bin/lib;${PWD}/../../libjpeg/build/bin/lib;${PWD}/../../zlib/build/bin/lib;${PWD}/../../libpng/build/bin/lib"'
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'FALSE',
+      CMAKE_PREFIX_PATH: dependencyPrefixPath,
+      CMAKE_INCLUDE_PATH: dependencyIncludePath,
+      CMAKE_LIBRARY_PATH: dependencyLibraryPath
     },
     (dirName, cmakeConfig, envVars) => {
       // patch config_auto.h between config and build
