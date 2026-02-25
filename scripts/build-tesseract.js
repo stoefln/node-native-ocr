@@ -199,7 +199,8 @@ function buildLeptonica(dirName) {
     if (!configContent.includes('include(CMakeFindDependencyMacro)')) {
       configContent =
         'include(CMakeFindDependencyMacro)\n' +
-        'find_dependency(ZLIB)\n\n' +
+        'find_dependency(ZLIB)\n' +
+        'find_dependency(JPEG)\n\n' +
         configContent
       fs.writeFileSync(leptonicaConfigPath, configContent, 'utf8')
       shell.echo(`Patched ${leptonicaConfigPath} with find_dependency declarations.`)
