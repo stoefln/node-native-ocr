@@ -15,6 +15,7 @@ let commonEnvVariables = {
   CMAKE_POSITION_INDEPENDENT_CODE: 'ON',
   CMAKE_MSVC_RUNTIME_LIBRARY: 'MultiThreaded',
   CMAKE_POLICY_DEFAULT_CMP0091: 'NEW',
+  CMAKE_POLICY_VERSION_MINIMUM: '3.5',
   CMAKE_OSX_DEPLOYMENT_TARGET: '10.9'
 }
 
@@ -198,10 +199,7 @@ function buildLeptonica(dirName) {
     if (!configContent.includes('include(CMakeFindDependencyMacro)')) {
       configContent =
         'include(CMakeFindDependencyMacro)\n' +
-        'find_dependency(ZLIB)\n' +
-        'find_dependency(PNG)\n' +
-        'find_dependency(JPEG)\n' +
-        'find_dependency(TIFF)\n\n' +
+        'find_dependency(ZLIB)\n\n' +
         configContent
       fs.writeFileSync(leptonicaConfigPath, configContent, 'utf8')
       shell.echo(`Patched ${leptonicaConfigPath} with find_dependency declarations.`)
