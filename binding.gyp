@@ -14,6 +14,13 @@
       ],
       'conditions': [
         [ "OS!='win'", {
+          'library_dirs': [
+            '../tesseract/build/bin/lib',
+            '../leptonica/build/bin/lib',
+            '../libjpeg/build/bin/lib',
+            '../libpng/build/bin/lib',
+            '../libtiff/build/bin/lib'
+          ],
           'libraries': [
             '../tesseract/build/bin/lib/libtesseract.a',
             '../leptonica/build/bin/lib/libleptonica.a',
@@ -23,12 +30,19 @@
           ]
         }],
         [ "OS=='win'", {
+          'library_dirs': [
+            '../tesseract/build/bin/lib',
+            '../leptonica/build/bin/lib',
+            '../libjpeg/build/bin/lib',
+            '../libpng/build/bin/lib',
+            '../libtiff/build/bin/lib'
+          ],
           'libraries': [
             '../tesseract/build/bin/lib/tesseract41.lib',
             '../leptonica/build/bin/lib/leptonica-1.80.0.lib',
-            '../libjpeg/build/bin/lib/libjpeg.lib',
+            '../libjpeg/build/bin/lib/jpeg.lib',
             '../libpng/build/bin/lib/libpng16.lib',
-            '../libtiff/build/bin/lib/libtiff.lib'
+            '../libtiff/build/bin/lib/tiff.lib'
           ]
         }]
       ],
