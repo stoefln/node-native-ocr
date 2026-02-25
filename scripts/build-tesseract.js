@@ -65,7 +65,7 @@ downloadAndBuildLib(
   null,
   {
     CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
-    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'FALSE',
+    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'TRUE',
     CMAKE_PREFIX_PATH: '"${PWD}/../../zlib/build/bin"',
     CMAKE_INCLUDE_PATH: '"${PWD}/../../zlib/build/bin/include"',
     CMAKE_LIBRARY_PATH: '"${PWD}/../../zlib/build/bin/lib"'
@@ -95,7 +95,7 @@ downloadAndBuildLib(
     'tiff-contrib': 'OFF',
     'tiff-docs': 'OFF',
     CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
-    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'FALSE',
+    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'TRUE',
     CMAKE_PREFIX_PATH: dependencyPrefixPath,
     CMAKE_INCLUDE_PATH: dependencyIncludePath,
     CMAKE_LIBRARY_PATH: dependencyLibraryPath
@@ -166,7 +166,7 @@ function buildLeptonica(dirName) {
     {
       SW_BUILD: 'OFF',
       CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
-      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'FALSE',
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'TRUE',
       CMAKE_PREFIX_PATH: dependencyPrefixPath,
       CMAKE_INCLUDE_PATH: dependencyIncludePath,
       CMAKE_LIBRARY_PATH: dependencyLibraryPath
@@ -191,6 +191,22 @@ function buildLeptonica(dirName) {
       }
     }
   )
+
+  const leptonicaConfigPath = path.resolve(__dirname, '..', dirName, 'build', 'LeptonicaConfig.cmake')
+  if (fs.existsSync(leptonicaConfigPath)) {
+    let configContent = fs.readFileSync(leptonicaConfigPath, 'utf8')
+    if (!configContent.includes('include(CMakeFindDependencyMacro)')) {
+      configContent =
+        'include(CMakeFindDependencyMacro)\n' +
+        'find_dependency(ZLIB)\n' +
+        'find_dependency(PNG)\n' +
+        'find_dependency(JPEG)\n' +
+        'find_dependency(TIFF)\n\n' +
+        configContent
+      fs.writeFileSync(leptonicaConfigPath, configContent, 'utf8')
+      shell.echo(`Patched ${leptonicaConfigPath} with find_dependency declarations.`)
+    }
+  }
 }
 
 function buildTesseract(dirName) {
@@ -201,7 +217,12 @@ function buildTesseract(dirName) {
     CPPAN_BUILD: 'OFF',
     BUILD_TRAINING_TOOLS: 'OFF',
     AUTO_OPTIMIZE: 'OFF',
-    Leptonica_DIR: '../leptonica/build'
+    Leptonica_DIR: '../leptonica/build',
+    CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
+    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'TRUE',
+    CMAKE_PREFIX_PATH: dependencyPrefixPath,
+    CMAKE_INCLUDE_PATH: dependencyIncludePath,
+    CMAKE_LIBRARY_PATH: dependencyLibraryPath
   })
 }
 
