@@ -97,8 +97,6 @@ downloadAndBuildLib(
     'tiff-tests': 'OFF',
     'tiff-contrib': 'OFF',
     'tiff-docs': 'OFF',
-    CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
-    CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'TRUE',
     CMAKE_PREFIX_PATH: dependencyPrefixPath,
     CMAKE_INCLUDE_PATH: dependencyIncludePath,
     CMAKE_LIBRARY_PATH: dependencyLibraryPath
@@ -176,6 +174,29 @@ function downloadAndBuildLib(repoUrl, dirName, patchConfig, envVars, ref) {
 
 function buildLeptonica(dirName) {
   printTitle('\nBuilding Leptonica.')
+
+  const leptonicaCMakeListsPath = path.resolve(__dirname, '..', dirName, 'src', 'CMakeLists.txt')
+  if (fs.existsSync(leptonicaCMakeListsPath)) {
+    let leptonicaCMakeLists = fs.readFileSync(leptonicaCMakeListsPath, 'utf8')
+    const tiffIncludeCompatSnippet = [
+      'if (TIFF_LIBRARIES)',
+      '    if (TIFF_INCLUDE_DIRS)',
+      '        target_include_directories  (leptonica PUBLIC ${TIFF_INCLUDE_DIRS})',
+      '    elseif (TIFF_INCLUDE_DIR)',
+      '        target_include_directories  (leptonica PUBLIC ${TIFF_INCLUDE_DIR})',
+      '    endif()',
+      '    target_link_libraries       (leptonica ${TIFF_LIBRARIES})',
+      'endif()'
+    ].join('\n')
+    if (!leptonicaCMakeLists.includes('if (TIFF_INCLUDE_DIRS)')) {
+      leptonicaCMakeLists = leptonicaCMakeLists.replace(
+        /if \(TIFF_LIBRARIES\)[\s\S]*?endif\(\)/,
+        tiffIncludeCompatSnippet
+      )
+      fs.writeFileSync(leptonicaCMakeListsPath, leptonicaCMakeLists, 'utf8')
+      shell.echo(`Patched ${leptonicaCMakeListsPath} for TIFF include compatibility.`)
+    }
+  }
 
   runCMakeBuild(
     dirName,

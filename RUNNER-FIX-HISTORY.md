@@ -72,17 +72,34 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - `Cannot open include file: 'tiffio.h': No such file or directory`
     - `Cannot open include file: 'tiff.h': No such file or directory`
 
-### Iteration H (latest local commit)
+### Iteration H
 - Commit: `238faab` — *Pass explicit TIFF include vars to Leptonica CMake*
 - Local change summary:
   - `scripts/build-tesseract.js`
     - Added explicit TIFF include propagation for Leptonica CMake config:
       - `TIFF_INCLUDE_DIR`
       - `TIFF_INCLUDE_DIRS`
-- Status: committed locally at time of writing; push/next run verification should be done by the next step.
+- GitHub run: `22565007221` (`Run CI`) → `failure`
+- `gh` log evidence (`gh run view 22565007221 --log-failed`):
+  - `ubuntu-latest`: libtiff configure fails with `Could NOT find CMath (missing: CMath_pow)`.
+  - `macos-14`: Leptonica compile still fails with `fatal error: 'tiffio.h' file not found`.
+  - `windows-latest`: Leptonica compile still fails with missing TIFF headers (`tiffio.h`, `tiff.h`).
+
+### Iteration I (in progress)
+- Local, not yet pushed in this entry:
+  - `scripts/build-tesseract.js`
+    - Removed restrictive `CMAKE_FIND_USE_CMAKE_SYSTEM_PATH`/`CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH` overrides for libtiff build to avoid breaking CMath detection on Ubuntu.
+    - Added build-time patching of `leptonica/src/CMakeLists.txt` to support both `TIFF_INCLUDE_DIRS` and `TIFF_INCLUDE_DIR` include variables.
+- Expected impact:
+  - Ubuntu should pass libtiff configure phase.
+  - macOS/Windows should receive TIFF include directories reliably during Leptonica compile.
 
 ## Current Hypothesis
-The primary blocker is TIFF header discovery during Leptonica build on GitHub runners. Explicitly exporting TIFF include dirs to CMake should resolve at least the Windows failure signature and may also address macOS/Linux if they hit the same discovery edge case.
+Primary blockers are now split:
+- Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.
+- macOS/Windows: Leptonica’s TIFF include handling needs compatibility with both `FindTIFF` variable variants.
+
+Iteration I targets both in a single minimal patch to validate in the next run.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
