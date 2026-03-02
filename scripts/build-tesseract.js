@@ -274,6 +274,16 @@ function buildTesseract(dirName) {
     }
   }
 
+  const tesseractMatchdefsPath = path.resolve(__dirname, '..', dirName, 'src', 'dict', 'matchdefs.h')
+  if (fs.existsSync(tesseractMatchdefsPath)) {
+    let matchdefsContent = fs.readFileSync(tesseractMatchdefsPath, 'utf8')
+    if (!matchdefsContent.includes('#include <cstdint>')) {
+      matchdefsContent = matchdefsContent.replace('#include <cstdio>', '#include <cstdio>\n#include <cstdint>')
+      fs.writeFileSync(tesseractMatchdefsPath, matchdefsContent, 'utf8')
+      shell.echo(`Patched ${tesseractMatchdefsPath} to include <cstdint>.`)
+    }
+  }
+
   runCMakeBuild(dirName, cmakeBuildType, {
     STATIC: 'ON',
     CPPAN_BUILD: 'OFF',

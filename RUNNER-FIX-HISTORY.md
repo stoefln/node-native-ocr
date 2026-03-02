@@ -119,6 +119,20 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `package.json`
     - `build-cc` now runs `node-gyp configure` before `node-gyp build`.
 
+### Iteration L (in progress)
+- GitHub run checked: `22582155388` (`Run CI`) after commit `ed49733`.
+- Status improvements:
+  - `macos-14` became green.
+  - `windows-latest` advanced to test phase.
+- Remaining failures:
+  - `ubuntu-latest`: Tesseract compile fails in `matchdefs.h` (`uint8_t` / `INT16_MAX` missing -> needs `<cstdint>`).
+  - `windows-latest`: tests fail with `ERR_DLOPEN_FAILED` / `The specified module could not be found` for `build/Release/node-native-ocr.node` (missing dependent DLLs on PATH).
+- Current local fixes prepared:
+  - `scripts/build-tesseract.js`
+    - build-time patch for `tesseract/src/dict/matchdefs.h` to add `#include <cstdint>`.
+  - `.github/workflows/ci.yaml`
+    - added Windows-only step to append all built native `.../build/bin/bin` folders to `GITHUB_PATH` before tests.
+
 ## Current Hypothesis
 Primary blockers are now split:
 - Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.
