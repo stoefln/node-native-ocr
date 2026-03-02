@@ -8,19 +8,46 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
-        os: [ ubuntu-20.04, macos-11, windows-2019 ]
-        node: [ "18" ]
+        os: [ ubuntu-latest, macos-14, windows-latest ]
+        node: [ "20" ]
 
     runs-on: ${{matrix.os}}
     steps:
-      - name: Set up Git repository
-        uses: actions/checkout@v2
-      - name: Set up node
-        uses: actions/setup-node@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{matrix.node}}
-      - name: Build 
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Windows compiler tools
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install dependencies (skip scripts)
+        run: npm ci --ignore-scripts
+
+      - name: Build native dependencies
+        env:
+          BUILD_FOR_ARCH: ${{ runner.arch == 'X64' && 'x64' || 'arm64' }}
         run: |
-          npm install
+          npm run clean-tesseract
+          npm run build-tesseract
+
+      - name: Build native addon
+        run: npm run build-cc
+
+      - name: Run tests
+        run: |
           npm test

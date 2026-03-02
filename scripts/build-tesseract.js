@@ -58,7 +58,7 @@ shell.cd(homeDir)
 shell.echo(`Working directory: ${homeDir}`)
 
 // ------ libraries ------
-downloadAndBuildLib('https://github.com/madler/zlib.git', 'zlib')
+downloadAndBuildLib('https://github.com/madler/zlib.git', 'zlib', null, null, 'v1.3.1')
 
 downloadAndBuildLib(
   'https://github.com/glennrp/libpng.git',
@@ -70,10 +70,11 @@ downloadAndBuildLib(
     CMAKE_PREFIX_PATH: '"${PWD}/../../zlib/build/bin"',
     CMAKE_INCLUDE_PATH: '"${PWD}/../../zlib/build/bin/include"',
     CMAKE_LIBRARY_PATH: '"${PWD}/../../zlib/build/bin/lib"'
-  }
+  },
+  'libpng16'
 )
 
-downloadAndBuildLib('https://github.com/libjpeg-turbo/libjpeg-turbo.git', 'libjpeg')
+downloadAndBuildLib('https://github.com/libjpeg-turbo/libjpeg-turbo.git', 'libjpeg', null, null, '3.0.4')
 
 downloadAndBuildLib(
   'https://github.com/libsdl-org/libtiff.git',
@@ -100,7 +101,8 @@ downloadAndBuildLib(
     CMAKE_PREFIX_PATH: dependencyPrefixPath,
     CMAKE_INCLUDE_PATH: dependencyIncludePath,
     CMAKE_LIBRARY_PATH: dependencyLibraryPath
-  }
+  },
+  'v4.6.0'
 )
 
 buildLeptonica('leptonica')
@@ -145,13 +147,26 @@ function checkVersion(a, b) {
   return y.length > x.length ? -1 : 0
 }
 
-function downloadAndBuildLib(repoUrl, dirName, patchConfig, envVars) {
+function downloadAndBuildLib(repoUrl, dirName, patchConfig, envVars, ref) {
   printTitle('Building ' + dirName)
 
   if (shell.test('-e', dirName)) {
     shell.echo(`The ${dirName} directory already exists.`)
+    if (shell.test('-e', `${dirName}/.git`)) {
+      shell.exec(`git -C ${dirName} remote set-url origin ${repoUrl}`)
+      if (ref) {
+        shell.exec(`git -C ${dirName} fetch --depth 1 --tags origin ${ref}`)
+        shell.exec(`git -C ${dirName} checkout -f FETCH_HEAD`)
+      }
+      shell.exec(`git -C ${dirName} clean -fdx`)
+    } else {
+      shell.rm('-rf', dirName)
+      const refArgs = ref ? `--branch ${ref} --depth 1 ` : ''
+      shell.exec(`git clone ${refArgs}${repoUrl} ${dirName}`)
+    }
   } else {
-    shell.exec(`git clone ${repoUrl} ${dirName}`)
+    const refArgs = ref ? `--branch ${ref} --depth 1 ` : ''
+    shell.exec(`git clone ${refArgs}${repoUrl} ${dirName}`)
   }
 
   if (patchConfig) patchConfig(dirName)

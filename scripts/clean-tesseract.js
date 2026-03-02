@@ -23,6 +23,9 @@ shell.cd(homeDir);
 shell.echo(`Working directory: ${homeDir}`);
 
 removeBuildDir('libjpeg');
+removeBuildDir('libpng');
+removeBuildDir('libtiff');
+removeBuildDir('zlib');
 removeBuildDir('leptonica');
 removeBuildDir('tesseract');
 
