@@ -59,12 +59,14 @@ jobs:
           "$env:GITHUB_WORKSPACE\\libjpeg\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$env:GITHUB_WORKSPACE\\zlib\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Set short Windows temp path
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path C:\t -Force | Out-Null
+          "TMP=C:\t" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "TEMP=C:\t" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Run tests
-        if: runner.os != 'Windows'
         run: |
           npm test
-
-      - name: Skip Windows runtime tests
-        if: runner.os == 'Windows'
-        run: |
-          echo "Skipping Windows runtime tests in CI (native addon crash under GH runner)."

@@ -146,6 +146,19 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - run `npm test` only on non-Windows runners.
     - add explicit Windows skip step for runtime tests while preserving build validation on Windows.
 
+### Iteration N (in progress)
+- Decision update: Windows tests are re-enabled (no skip).
+- Rationale:
+  - User requirement is explicit full Windows module validation.
+  - Remaining Windows failure (`3221226505`) occurs at runtime after successful build and addon link, near Leptonica temp-file memory workaround logs.
+- Current local fix:
+  - `.github/workflows/ci.yaml`
+    - removed Windows test skip.
+    - added Windows step to force short temp path before tests:
+      - `TMP=C:\t`
+      - `TEMP=C:\t`
+  - Goal is to avoid potential long-path stack buffer issues in native temp-file code paths.
+
 ## Current Hypothesis
 Primary blockers are now split:
 - Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.
