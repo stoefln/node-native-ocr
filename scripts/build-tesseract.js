@@ -185,7 +185,10 @@ function buildLeptonica(dirName) {
       '    elseif (TIFF_INCLUDE_DIR)',
       '        target_include_directories  (leptonica PUBLIC ${TIFF_INCLUDE_DIR})',
       '    endif()',
-      '    target_link_libraries       (leptonica ${TIFF_LIBRARIES})',
+      '    set(_TIFF_LIBRARIES ${TIFF_LIBRARIES})',
+      '    list(REMOVE_ITEM _TIFF_LIBRARIES CMath::CMath)',
+      '    list(REMOVE_ITEM _TIFF_LIBRARIES $<LINK_ONLY:CMath::CMath>)',
+      '    target_link_libraries       (leptonica ${_TIFF_LIBRARIES})',
       'endif()'
     ].join('\n')
     if (!leptonicaCMakeLists.includes('if (TIFF_INCLUDE_DIRS)')) {

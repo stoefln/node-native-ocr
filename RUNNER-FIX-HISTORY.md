@@ -94,6 +94,17 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - Ubuntu should pass libtiff configure phase.
   - macOS/Windows should receive TIFF include directories reliably during Leptonica compile.
 
+### Iteration J (in progress)
+- GitHub run checked: `22574409742` (`Run CI`) → `failure` on all 3 OS.
+- New root cause from logs:
+  - Leptonica links with TIFF libs that include `CMath::CMath` in interface.
+  - Leptonica and Tesseract config then fail because imported target `CMath::CMath` is undefined.
+- Current fix applied locally:
+  - `scripts/build-tesseract.js` build-time patch now rewrites Leptonica TIFF link section to remove:
+    - `CMath::CMath`
+    - `$<LINK_ONLY:CMath::CMath>`
+  - Temp logs moved to repo-local `temp/` directory to avoid external writes.
+
 ## Current Hypothesis
 Primary blockers are now split:
 - Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.
