@@ -253,6 +253,27 @@ function buildLeptonica(dirName) {
 function buildTesseract(dirName) {
   printTitle('\nBuilding Tesseract.')
 
+  const tesseractCMakeListsPath = path.resolve(__dirname, '..', dirName, 'CMakeLists.txt')
+  if (fs.existsSync(tesseractCMakeListsPath)) {
+    let tesseractCMakeLists = fs.readFileSync(tesseractCMakeListsPath, 'utf8')
+    tesseractCMakeLists = tesseractCMakeLists.replace(
+      'target_link_libraries(tesseract tiff)',
+      'target_link_libraries(tesseract ${TIFF_LIBRARIES})'
+    )
+    fs.writeFileSync(tesseractCMakeListsPath, tesseractCMakeLists, 'utf8')
+    shell.echo(`Patched ${tesseractCMakeListsPath} to link TIFF via resolved library paths.`)
+  }
+
+  const tesseractHelpersPath = path.resolve(__dirname, '..', dirName, 'src', 'ccutil', 'helpers.h')
+  if (fs.existsSync(tesseractHelpersPath)) {
+    let helpersContent = fs.readFileSync(tesseractHelpersPath, 'utf8')
+    if (!helpersContent.includes('#include <cstdint>')) {
+      helpersContent = helpersContent.replace('#include <string>', '#include <string>\n#include <cstdint>')
+      fs.writeFileSync(tesseractHelpersPath, helpersContent, 'utf8')
+      shell.echo(`Patched ${tesseractHelpersPath} to include <cstdint>.`)
+    }
+  }
+
   runCMakeBuild(dirName, cmakeBuildType, {
     STATIC: 'ON',
     CPPAN_BUILD: 'OFF',

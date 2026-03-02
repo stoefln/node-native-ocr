@@ -105,6 +105,20 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - `$<LINK_ONLY:CMath::CMath>`
   - Temp logs moved to repo-local `temp/` directory to avoid external writes.
 
+### Iteration K (in progress)
+- GitHub run checked: `22581769086` (`Run CI`) after commit `94ae679`.
+- Outcome details:
+  - CMath-link-interface CMake failure is resolved.
+  - New Ubuntu failure while building Tesseract: `helpers.h` missing `<cstdint>` symbols (`uint64_t`, `INT32_MAX`).
+  - New macOS failure while linking `bin/tesseract`: `ld: library 'tiff' not found` (Tesseract CMake links plain `tiff`).
+  - Windows progressed further and failed in addon step: `You must run node-gyp configure first!`.
+- Current local fixes prepared:
+  - `scripts/build-tesseract.js`
+    - patch `tesseract/CMakeLists.txt`: `target_link_libraries(tesseract tiff)` -> `target_link_libraries(tesseract ${TIFF_LIBRARIES})`
+    - patch `tesseract/src/ccutil/helpers.h` to add `#include <cstdint>` when missing.
+  - `package.json`
+    - `build-cc` now runs `node-gyp configure` before `node-gyp build`.
+
 ## Current Hypothesis
 Primary blockers are now split:
 - Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.
