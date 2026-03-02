@@ -28,6 +28,7 @@ const dependencyIncludePath =
   '"${PWD}/../../zlib/build/bin/include;${PWD}/../../libpng/build/bin/include;${PWD}/../../libjpeg/build/bin/include;${PWD}/../../libtiff/build/bin/include"'
 const dependencyLibraryPath =
   '"${PWD}/../../zlib/build/bin/lib;${PWD}/../../libpng/build/bin/lib;${PWD}/../../libjpeg/build/bin/lib;${PWD}/../../libtiff/build/bin/lib"'
+const tiffIncludePath = '"${PWD}/../../libtiff/build/bin/include"'
 
 if (buildForArch === 'arm64') {
   shell.echo('arm64 build')
@@ -181,6 +182,8 @@ function buildLeptonica(dirName) {
     cmakeBuildType,
     {
       SW_BUILD: 'OFF',
+      TIFF_INCLUDE_DIR: tiffIncludePath,
+      TIFF_INCLUDE_DIRS: tiffIncludePath,
       CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',
       CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: 'TRUE',
       CMAKE_PREFIX_PATH: dependencyPrefixPath,
