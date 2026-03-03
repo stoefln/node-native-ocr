@@ -260,12 +260,19 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `scripts/build-tesseract.js`
     - re-enabled PNG/TIFF package discovery on all platforms (`CMAKE_DISABLE_FIND_PACKAGE_PNG=OFF`, `..._TIFF=OFF`).
 
-## Current Hypothesis
-Current blockers were identified as:
-- AVA test discovery conflict from placing a non-AVA smoke script under `test/`.
-- Windows CLI OCR dependency mismatch due disabled TIFF support in Leptonica.
+### Iteration W (in progress)
+- GitHub run checked: `22604678914` (`Run CI`) after commit `dc22c33`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: fails in `Build native addon` with unresolved PNG/TIFF symbols from `leptonica-1.80.0.lib`.
+- Current local fix:
+  - `binding.gyp`
+    - restored Windows link inputs for PNG/TIFF (`libpng16.lib`, `tiff.lib`) and their library dirs.
 
-Iteration V addresses both together with minimal config/build changes.
+## Current Hypothesis
+Primary remaining blocker is Windows addon link dependency parity after re-enabling PNG/TIFF in Leptonica.
+
+Iteration W restores matching Windows link libraries in `binding.gyp`.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
