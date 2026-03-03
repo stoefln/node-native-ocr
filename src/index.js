@@ -72,7 +72,26 @@ const runTesseractCli = (buffer, options, callback) => {
       maxBuffer: 10 * 1024 * 1024
     },
     (error, stdout, stderr) => {
+    const outputExtension = options.format === 'tsv' ? 'tsv' : 'txt'
+    const outputPath = `${outputBasePath}.${outputExtension}`
+
     if (error) {
+      if (fs.existsSync(outputPath)) {
+        try {
+          const outputText = fs.readFileSync(outputPath, 'utf8')
+          fs.rmSync(tempDir, {recursive: true, force: true})
+          callback(null, outputText)
+          return
+        } catch (readError) {
+          const readMessage = readError && readError.message ? readError.message : 'Failed to read tesseract output.'
+          const outputReadError = new Error(readMessage)
+          outputReadError.code = 'ERR_INIT_TESSER'
+          fs.rmSync(tempDir, {recursive: true, force: true})
+          callback(outputReadError)
+          return
+        }
+      }
+
       const message = [stderr, stdout, error.message].filter(Boolean).join('\n').trim()
       const commandError = new Error(message || 'Tesserat error occured.')
       commandError.code = 'ERR_INIT_TESSER'
@@ -81,8 +100,6 @@ const runTesseractCli = (buffer, options, callback) => {
       return
     }
 
-    const outputExtension = options.format === 'tsv' ? 'tsv' : 'txt'
-    const outputPath = `${outputBasePath}.${outputExtension}`
     try {
       const outputText = fs.readFileSync(outputPath, 'utf8')
       fs.rmSync(tempDir, {recursive: true, force: true})

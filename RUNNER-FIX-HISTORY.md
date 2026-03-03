@@ -335,10 +335,20 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `src/index.js`
     - set `TESSDATA_PREFIX` in `execFile` environment for Windows CLI backend using `options.tessdataPath`.
 
-## Current Hypothesis
-Primary remaining blocker is Windows CLI tessdata path resolution.
+### Iteration AD (in progress)
+- GitHub run checked: `22606307503` (`Run CI`) after commit `ed38d25`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: CLI still exits non-zero with only tesseract banner text, without explicit failure diagnostics.
+- Current local fix:
+  - `src/index.js`
+    - when CLI exits non-zero, accept and read generated OCR output file if present.
+    - only treat as hard error when no output file exists or output file read fails.
 
-Iteration AC sets `TESSDATA_PREFIX` explicitly during CLI execution.
+## Current Hypothesis
+Primary remaining blocker is Windows CLI returning non-zero even when it may still produce usable output.
+
+Iteration AD adds output-file-first handling for non-zero CLI exits.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
