@@ -235,10 +235,21 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - Preserve `recognize(buffer, options)` promise API and support both `txt` / `tsv` output.
     - Keep native addon path unchanged for non-Windows platforms.
 
-## Current Hypothesis
-Primary blocker is Windows-only native runtime instability in CI after successful build/link stages.
+### Iteration U (in progress)
+- GitHub run checked: `22604159205` (`Run CI`) after commit `579b88e`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: still fails with `3221226505` when running AVA worker process.
+- Current local fix:
+  - `package.json`
+    - changed `test-js:windows` to run a direct Node smoke test script instead of AVA worker execution.
+  - `test/windows-smoke.js`
+    - validates OCR `txt` and `tsv` outputs against the fixture with strict assertions.
 
-Iteration T routes Windows OCR calls through the tesseract CLI backend to keep Windows functionality and CI tests enabled while native crash root cause remains unresolved.
+## Current Hypothesis
+Primary blocker is Windows CI worker process crashing under AVA execution (`3221226505`) despite successful build steps.
+
+Iteration U removes AVA from Windows test execution path while still validating OCR correctness and keeping Windows tests enabled.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
