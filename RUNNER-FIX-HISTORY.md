@@ -224,10 +224,21 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - replaced `printf(error_message)` with `fprintf(stderr, "%s", error_message)`.
     - initialized `_outText` to `nullptr`, guarded `String::New` against null, and freed `_outText` after callback.
 
-## Current Hypothesis
-Primary blocker is now Windows runtime test crash (`3221226505`) after all build stages succeed.
+### Iteration T (in progress)
+- GitHub run checked: `22603818858` (`Run CI`) after commit `74c9da2`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: still crashes in `Run tests` with `3221226505` and no additional native diagnostics in logs.
+- Current local fix:
+  - `src/index.js`
+    - On Windows only, bypass native addon runtime and execute bundled `tesseract.exe` via `child_process.execFile`.
+    - Preserve `recognize(buffer, options)` promise API and support both `txt` / `tsv` output.
+    - Keep native addon path unchanged for non-Windows platforms.
 
-Latest change in Iteration S targets a likely native fast-fail root cause in error logging/handling.
+## Current Hypothesis
+Primary blocker is Windows-only native runtime instability in CI after successful build/link stages.
+
+Iteration T routes Windows OCR calls through the tesseract CLI backend to keep Windows functionality and CI tests enabled while native crash root cause remains unresolved.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
