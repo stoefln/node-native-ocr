@@ -52,7 +52,7 @@
     "test": "npm run test-js",
     "test-js": "run-script-os",
     "test-js:linux": "nyc ava --verbose --timeout=10s",
-    "test-js:windows": "node test/windows-smoke.js",
+    "test-js:windows": "node scripts/windows-smoke.js",
     "test-js:default": "ava --verbose --timeout=10s",
     "report-cov": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "prepack": "npm run clean-tesseract && node ./scripts/prepack"
@@ -67,7 +67,7 @@
       "babelrc": true
     },
     "files": [
-      "test/*.js"
+      "test/index.js"
     ]
   },
   "keywords": [

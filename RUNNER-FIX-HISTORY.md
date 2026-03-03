@@ -246,10 +246,26 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `test/windows-smoke.js`
     - validates OCR `txt` and `tsv` outputs against the fixture with strict assertions.
 
-## Current Hypothesis
-Primary blocker is Windows CI worker process crashing under AVA execution (`3221226505`) despite successful build steps.
+### Iteration V (in progress)
+- GitHub run checked: `22604414640` (`Run CI`) after commit `bea0c42`.
+- Outcome:
+  - Ubuntu/macOS: failed because AVA discovered `test/windows-smoke.js` and treated it as a non-AVA test file.
+  - Windows: failed with CLI OCR runtime error (`pixReadMemTiff: function not present`), indicating TIFF support was disabled in Leptonica build.
+- Current local fix:
+  - `package.json`
+    - set AVA files to only `test/index.js`.
+    - moved Windows smoke test command to `node scripts/windows-smoke.js`.
+  - `scripts/windows-smoke.js`
+    - moved smoke test out of `test/` to avoid AVA discovery.
+  - `scripts/build-tesseract.js`
+    - re-enabled PNG/TIFF package discovery on all platforms (`CMAKE_DISABLE_FIND_PACKAGE_PNG=OFF`, `..._TIFF=OFF`).
 
-Iteration U removes AVA from Windows test execution path while still validating OCR correctness and keeping Windows tests enabled.
+## Current Hypothesis
+Current blockers were identified as:
+- AVA test discovery conflict from placing a non-AVA smoke script under `test/`.
+- Windows CLI OCR dependency mismatch due disabled TIFF support in Leptonica.
+
+Iteration V addresses both together with minimal config/build changes.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
