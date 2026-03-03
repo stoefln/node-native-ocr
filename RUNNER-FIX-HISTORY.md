@@ -324,10 +324,21 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `scripts/windows-smoke.js`
     - reduced text OCR call to single `eng` language.
 
-## Current Hypothesis
-Primary remaining blocker is Windows runtime stability; native path crashes while CLI path is sensitive to invocation details.
+### Iteration AC (in progress)
+- GitHub run checked: `22606074136` (`Run CI`) after commit `a7cfe2c`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: fails with clear tesseract language data error:
+    - `Error opening data file .../tessdata/eng.traineddata`
+    - `Please make sure the TESSDATA_PREFIX environment variable is set...`
+- Current local fix:
+  - `src/index.js`
+    - set `TESSDATA_PREFIX` in `execFile` environment for Windows CLI backend using `options.tessdataPath`.
 
-Iteration AB returns to CLI with simplified args and narrower language surface for validation.
+## Current Hypothesis
+Primary remaining blocker is Windows CLI tessdata path resolution.
+
+Iteration AC sets `TESSDATA_PREFIX` explicitly during CLI execution.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:

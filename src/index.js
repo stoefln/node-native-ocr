@@ -59,7 +59,19 @@ const runTesseractCli = (buffer, options, callback) => {
     args.push('tsv')
   }
 
-  execFile(executable, args, {cwd: tempDir, windowsHide: true, maxBuffer: 10 * 1024 * 1024}, (error, stdout, stderr) => {
+  execFile(
+    executable,
+    args,
+    {
+      cwd: tempDir,
+      env: {
+        ...process.env,
+        TESSDATA_PREFIX: options.tessdataPath
+      },
+      windowsHide: true,
+      maxBuffer: 10 * 1024 * 1024
+    },
+    (error, stdout, stderr) => {
     if (error) {
       const message = [stderr, stdout, error.message].filter(Boolean).join('\n').trim()
       const commandError = new Error(message || 'Tesserat error occured.')
@@ -82,7 +94,8 @@ const runTesseractCli = (buffer, options, callback) => {
       fs.rmSync(tempDir, {recursive: true, force: true})
       callback(outputError)
     }
-  })
+    }
+  )
 }
 
 const makePromise = method => {
