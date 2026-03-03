@@ -171,6 +171,20 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - Added Windows-specific test script to run AVA serially:
       - `test-js:windows = ava --verbose --timeout=10s --serial`
 
+### Iteration P (in progress)
+- GitHub run checked: `22602480306` (`Run CI`) after commit `5841c71`.
+- Outcome:
+  - Linux/macOS pass.
+  - Windows still crashes in runtime tests (`3221226505`) during OCR call from Buffer input.
+- Root-cause hypothesis:
+  - Native async worker stores raw pointer to JS Buffer without owning memory.
+  - Buffer lifetime across async boundary may cause invalid memory access/crash.
+- Current local fix:
+  - `cc/recognize.cc`
+    - copy input buffer into worker-owned `std::vector<uint8_t>`.
+    - read image from owned buffer (`pixReadMem(_buffer.data(), _buffer.size())`).
+    - tighten argument checks (`Length >= 5`, first arg must be Buffer).
+
 ## Current Hypothesis
 Primary blockers are now split:
 - Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.

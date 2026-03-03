@@ -1,6 +1,7 @@
 #include <napi.h>
 #include <uv.h>
 #include <stdint.h>
+#include <vector>
 #include "recognize.h"
 #include "ocr.h"
 
@@ -14,8 +15,7 @@ class RecognizeWorker : public Napi::AsyncWorker
 {
 
 private:
-  uint8_t *_buffer;
-  size_t _length;
+  std::vector<uint8_t> _buffer;
   std::string _lang;
   std::string _path;
   bool _tsvOutput;
@@ -23,17 +23,17 @@ private:
 
   Pix *ReadImage()
   {
-    return pixReadMem(_buffer, _length);
+    return pixReadMem(_buffer.data(), _buffer.size());
   }
 
 public:
-  RecognizeWorker(uint8_t *buffer,
+  RecognizeWorker(const uint8_t *buffer,
                   size_t length,
                   std::string &lang,
                   std::string &path,
                   bool tsvOutput,
                   Function &callback)
-      : Napi::AsyncWorker(callback), _buffer(buffer), _length(length), _lang(lang), _path(path), _tsvOutput(tsvOutput)
+      : Napi::AsyncWorker(callback), _buffer(buffer, buffer + length), _lang(lang), _path(path), _tsvOutput(tsvOutput)
   {
   }
 
@@ -88,9 +88,15 @@ void Recognize(const Napi::CallbackInfo &info)
 
   Napi::Env env = info.Env();
 
-  if (info.Length() < 4)
+  if (info.Length() < 5)
   {
     Napi::TypeError::New(env, "Invalid argument count").ThrowAsJavaScriptException();
+    return;
+  }
+
+  if (!info[0].IsBuffer())
+  {
+    Napi::TypeError::New(env, "1. param needs to be a Buffer!").ThrowAsJavaScriptException();
     return;
   }
 
