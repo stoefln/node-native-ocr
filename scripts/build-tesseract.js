@@ -206,6 +206,8 @@ function buildLeptonica(dirName) {
     cmakeBuildType,
     {
       SW_BUILD: 'OFF',
+      CMAKE_DISABLE_FIND_PACKAGE_PNG: process.platform === 'win32' ? 'ON' : 'OFF',
+      CMAKE_DISABLE_FIND_PACKAGE_TIFF: process.platform === 'win32' ? 'ON' : 'OFF',
       TIFF_INCLUDE_DIR: tiffIncludePath,
       TIFF_INCLUDE_DIRS: tiffIncludePath,
       CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: 'FALSE',

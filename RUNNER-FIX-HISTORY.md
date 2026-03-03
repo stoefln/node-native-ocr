@@ -185,6 +185,22 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - read image from owned buffer (`pixReadMem(_buffer.data(), _buffer.size())`).
     - tighten argument checks (`Length >= 5`, first arg must be Buffer).
 
+### Iteration Q (in progress)
+- Comparison insight from `v0.2.0` / commit `05595e61c5eb`:
+  - Windows addon used a smaller direct link surface (tesseract + leptonica + jpeg only).
+  - Current setup adds direct PNG/TIFF linkage and broader codec surface.
+- Current local alignment changes:
+  - `binding.gyp`
+    - Windows addon link inputs reduced to:
+      - `tesseract41.lib`
+      - `leptonica-1.80.0.lib`
+      - `jpeg.lib`
+    - removed direct `libpng16.lib` and `tiff.lib` linkage.
+  - `scripts/build-tesseract.js`
+    - For Windows Leptonica builds, disable PNG/TIFF package discovery via:
+      - `CMAKE_DISABLE_FIND_PACKAGE_PNG=ON`
+      - `CMAKE_DISABLE_FIND_PACKAGE_TIFF=ON`
+
 ## Current Hypothesis
 Primary blockers are now split:
 - Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.
