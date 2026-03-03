@@ -47,27 +47,39 @@ const runTesseractCli = (buffer, options, callback) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'node-native-ocr-'))
   const tempFileName = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
   const inputPath = path.join(tempDir, `${tempFileName}.jpg`)
+  const outputBasePath = path.join(tempDir, `${tempFileName}-ocr`)
   const executable = fs.existsSync(DEFAULT_TESSERACT_BINARY) ? DEFAULT_TESSERACT_BINARY : 'tesseract'
 
   fs.writeFileSync(inputPath, buffer)
 
-  const args = [inputPath, 'stdout', '-l', options.lang, '--tessdata-dir', options.tessdataPath]
+  const args = [inputPath, outputBasePath, '-l', options.lang, '--tessdata-dir', options.tessdataPath]
   if (options.format === 'tsv') {
     args.push('tsv')
   }
 
   execFile(executable, args, {windowsHide: true, maxBuffer: 10 * 1024 * 1024}, (error, stdout, stderr) => {
-    fs.rmSync(tempDir, {recursive: true, force: true})
-
     if (error) {
       const message = [stderr, stdout, error.message].filter(Boolean).join('\n').trim()
       const commandError = new Error(message || 'Tesserat error occured.')
       commandError.code = 'ERR_INIT_TESSER'
+      fs.rmSync(tempDir, {recursive: true, force: true})
       callback(commandError)
       return
     }
 
-    callback(null, stdout)
+    const outputExtension = options.format === 'tsv' ? 'tsv' : 'txt'
+    const outputPath = `${outputBasePath}.${outputExtension}`
+    try {
+      const outputText = fs.readFileSync(outputPath, 'utf8')
+      fs.rmSync(tempDir, {recursive: true, force: true})
+      callback(null, outputText)
+    } catch (readError) {
+      const message = readError && readError.message ? readError.message : 'Failed to read tesseract output.'
+      const outputError = new Error(message)
+      outputError.code = 'ERR_INIT_TESSER'
+      fs.rmSync(tempDir, {recursive: true, force: true})
+      callback(outputError)
+    }
   })
 }
 

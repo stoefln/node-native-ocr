@@ -279,10 +279,21 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - use `.jpg` extension for temporary CLI input file (instead of `.img`).
     - include `stderr` + `stdout` + process error message in thrown error text for next-iteration diagnostics.
 
-## Current Hypothesis
-Primary remaining blocker is Windows CLI runtime invocation details (input file handling/diagnostics), not build or linking.
+### Iteration Y (in progress)
+- GitHub run checked: `22605146277` (`Run CI`) after commit `d07f111`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: CLI OCR still exits non-zero, now confirmed on command form that uses `stdout` output target.
+- Current local fix:
+  - `src/index.js`
+    - switched Windows CLI OCR to write output to a temp output base file instead of `stdout` target.
+    - reads generated `.txt` / `.tsv` file from disk and returns content.
+    - added guarded file-read error handling with explicit `ERR_INIT_TESSER` on failure.
 
-Iteration X improves input compatibility and observability for the next run.
+## Current Hypothesis
+Primary remaining blocker is Windows CLI invocation behavior with `stdout` output mode.
+
+Iteration Y switches to file-based output retrieval for better compatibility with this Windows build.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
