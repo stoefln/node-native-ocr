@@ -201,6 +201,17 @@ This file records the CI/workflow fix iterations so another agent can continue f
       - `CMAKE_DISABLE_FIND_PACKAGE_PNG=ON`
       - `CMAKE_DISABLE_FIND_PACKAGE_TIFF=ON`
 
+### Iteration R (in progress)
+- GitHub run checked: `22603262930` (`Run CI`) after commit `2e5c5fd`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: still crashes in `Run tests` with `3221226505`, always after log line:
+    - `Info in fopenReadFromMemory: work-around: writing to a temp file`
+- Current local fix:
+  - `cc/recognize.cc`
+    - On Windows, bypass `pixReadMem` path and explicitly write buffer to a temp file + call `pixRead(tempFile)`.
+    - Fallback to `pixReadMem` remains for non-Windows.
+
 ## Current Hypothesis
 Primary blockers are now split:
 - Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.

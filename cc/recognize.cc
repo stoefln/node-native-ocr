@@ -1,7 +1,11 @@
 #include <napi.h>
 #include <uv.h>
 #include <stdint.h>
+#include <fstream>
 #include <vector>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "recognize.h"
 #include "ocr.h"
 
@@ -23,6 +27,26 @@ private:
 
   Pix *ReadImage()
   {
+#ifdef _WIN32
+    char tempPath[MAX_PATH];
+    if (GetTempPathA(MAX_PATH, tempPath) > 0)
+    {
+      char tempFile[MAX_PATH];
+      if (GetTempFileNameA(tempPath, "ocr", 0, tempFile) > 0)
+      {
+        std::ofstream tempStream(tempFile, std::ios::binary | std::ios::out | std::ios::trunc);
+        if (tempStream.is_open())
+        {
+          tempStream.write(reinterpret_cast<const char *>(_buffer.data()), static_cast<std::streamsize>(_buffer.size()));
+          tempStream.close();
+          Pix *image = pixRead(tempFile);
+          DeleteFileA(tempFile);
+          return image;
+        }
+        DeleteFileA(tempFile);
+      }
+    }
+#endif
     return pixReadMem(_buffer.data(), _buffer.size());
   }
 
