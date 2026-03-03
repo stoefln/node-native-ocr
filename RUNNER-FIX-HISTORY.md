@@ -290,10 +290,21 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - reads generated `.txt` / `.tsv` file from disk and returns content.
     - added guarded file-read error handling with explicit `ERR_INIT_TESSER` on failure.
 
-## Current Hypothesis
-Primary remaining blocker is Windows CLI invocation behavior with `stdout` output mode.
+### Iteration Z (in progress)
+- GitHub run checked: `22605370801` (`Run CI`) after commit `9ede934`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: CLI command still exits non-zero; stderr only shows tesseract banner line.
+- Current local fix:
+  - `src/index.js`
+    - execute CLI with `cwd` set to temp dir.
+    - use simple relative input/output file names for tesseract args.
+    - normalize `--tessdata-dir` path separators to forward slashes on Windows.
 
-Iteration Y switches to file-based output retrieval for better compatibility with this Windows build.
+## Current Hypothesis
+Primary remaining blocker is Windows tesseract CLI argument/path handling in the CI environment.
+
+Iteration Z simplifies process cwd/paths to avoid Windows command-line path edge cases.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:

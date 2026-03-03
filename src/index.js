@@ -46,18 +46,21 @@ const handleOptions = (options = {}) => {
 const runTesseractCli = (buffer, options, callback) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'node-native-ocr-'))
   const tempFileName = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
-  const inputPath = path.join(tempDir, `${tempFileName}.jpg`)
-  const outputBasePath = path.join(tempDir, `${tempFileName}-ocr`)
+  const inputFileName = `${tempFileName}.jpg`
+  const outputFileBase = `${tempFileName}-ocr`
+  const inputPath = path.join(tempDir, inputFileName)
+  const outputBasePath = path.join(tempDir, outputFileBase)
   const executable = fs.existsSync(DEFAULT_TESSERACT_BINARY) ? DEFAULT_TESSERACT_BINARY : 'tesseract'
+  const normalizedTessdataPath = options.tessdataPath.replace(/\\/g, '/')
 
   fs.writeFileSync(inputPath, buffer)
 
-  const args = [inputPath, outputBasePath, '-l', options.lang, '--tessdata-dir', options.tessdataPath]
+  const args = [inputFileName, outputFileBase, '-l', options.lang, '--tessdata-dir', normalizedTessdataPath]
   if (options.format === 'tsv') {
     args.push('tsv')
   }
 
-  execFile(executable, args, {windowsHide: true, maxBuffer: 10 * 1024 * 1024}, (error, stdout, stderr) => {
+  execFile(executable, args, {cwd: tempDir, windowsHide: true, maxBuffer: 10 * 1024 * 1024}, (error, stdout, stderr) => {
     if (error) {
       const message = [stderr, stdout, error.message].filter(Boolean).join('\n').trim()
       const commandError = new Error(message || 'Tesserat error occured.')
