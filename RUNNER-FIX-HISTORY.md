@@ -312,10 +312,22 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - Rationale:
     - With AVA removed from Windows execution, this validates whether the original hard crash was test-runner related.
 
-## Current Hypothesis
-Primary remaining blocker is unresolved Windows runtime behavior; CLI fallback remains unreliable in this environment.
+### Iteration AB (in progress)
+- GitHub run checked: `22605835145` (`Run CI`) after commit `f85cd9b`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: still fails in `Run tests`; native addon path exits hard with no catchable JS error details.
+- Current local fix:
+  - `src/index.js`
+    - re-enabled Windows CLI fallback path.
+    - simplified CLI args by removing explicit `--tessdata-dir`.
+  - `scripts/windows-smoke.js`
+    - reduced text OCR call to single `eng` language.
 
-Iteration AA re-tests the native addon path under the new Node smoke test runner.
+## Current Hypothesis
+Primary remaining blocker is Windows runtime stability; native path crashes while CLI path is sensitive to invocation details.
+
+Iteration AB returns to CLI with simplified args and narrower language surface for validation.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:

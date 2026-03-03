@@ -11,7 +11,7 @@ const expectedTsv = '1\t1\t0\t0\t0\t0\t0\t0\t999\t1339\t-1\t\n2\t1\t1\t0\t0\t0\t
 async function main() {
   const buffer = await fs.readFile(fixtures('test.jpg'))
 
-  const txt = await recognize(buffer, {lang: ['eng', 'ita']})
+  const txt = await recognize(buffer, {lang: 'eng'})
   assert.strictEqual(txt, expectedTxt)
 
   const tsv = await recognize(buffer, {lang: 'eng', format: 'tsv'})

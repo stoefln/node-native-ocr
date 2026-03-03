@@ -4,7 +4,8 @@ const os = require('os')
 const crypto = require('crypto')
 const {execFile} = require('child_process')
 const packageRootPath = path.resolve(__dirname, '..')
-const bindings = require('node-gyp-build')(packageRootPath)
+const isWindows = process.platform === 'win32'
+const bindings = isWindows ? null : require('node-gyp-build')(packageRootPath)
 
 const DEFAULT_LANG = 'eng'
 const LANG_DELIMITER = '+'
@@ -50,11 +51,10 @@ const runTesseractCli = (buffer, options, callback) => {
   const inputPath = path.join(tempDir, inputFileName)
   const outputBasePath = path.join(tempDir, outputFileBase)
   const executable = fs.existsSync(DEFAULT_TESSERACT_BINARY) ? DEFAULT_TESSERACT_BINARY : 'tesseract'
-  const normalizedTessdataPath = options.tessdataPath.replace(/\\/g, '/')
 
   fs.writeFileSync(inputPath, buffer)
 
-  const args = [inputFileName, outputFileBase, '-l', options.lang, '--tessdata-dir', normalizedTessdataPath]
+  const args = [inputFileName, outputFileBase, '-l', options.lang]
   if (options.format === 'tsv') {
     args.push('tsv')
   }
@@ -95,7 +95,9 @@ const makePromise = method => {
 
       options = handleOptions(options)
 
-      const invoke = callback => bindings[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', callback)
+      const invoke = isWindows
+        ? callback => runTesseractCli(arg, options, callback)
+        : callback => bindings[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', callback)
 
       invoke((err, text) => {
         if (err) {
