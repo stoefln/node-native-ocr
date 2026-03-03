@@ -159,6 +159,18 @@ This file records the CI/workflow fix iterations so another agent can continue f
       - `TEMP=C:\t`
   - Goal is to avoid potential long-path stack buffer issues in native temp-file code paths.
 
+### Iteration O (in progress)
+- GitHub run checked: `22583688444` (`Run CI`) after commit `de9b147`.
+- Outcome:
+  - Linux/macOS pass.
+  - Windows still crashes during `npm test` with exit code `3221226505` after `fopenReadFromMemory` temp-file logs.
+- Hypothesis:
+  - Windows native path is unstable under concurrent AVA execution.
+- Current local fix:
+  - `package.json`
+    - Added Windows-specific test script to run AVA serially:
+      - `test-js:windows = ava --verbose --timeout=10s --serial`
+
 ## Current Hypothesis
 Primary blockers are now split:
 - Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.
