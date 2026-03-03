@@ -358,17 +358,27 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - purpose is to validate module execution path stability on Windows CI.
 
   ### Iteration AF (in progress)
-  - GitHub run checked: `22613350045` (`Run CI`) after commit `eeee642`.
-  - Outcome:
     - Ubuntu/macOS: pass.
     - Windows: fails in `Run tests` because CLI OCR invocation with `format=tsv` errors with:
       - `read_params_file: Can't open tsv`
       - command exits with `ERR_INIT_TESSER`.
-  - Current local fix:
     - `scripts/windows-smoke.js`
       - removed `format=tsv` smoke invocation.
       - keep operational runtime validation to a single OCR call (`lang=eng`) returning a string.
 
+  ### Iteration AG (in progress)
+  - Goal:
+    - restore TSV support on Windows while keeping CI green on all platforms.
+  - Root cause identified:
+    - Windows CLI path used trailing `tsv` argument, which requires a `tessdata/configs/tsv` config file not present in runner layout.
+  - Current local fix:
+    - `src/index.js`
+      - for Windows CLI + `format=tsv`, switched from trailing `tsv` config arg to explicit vars:
+        - `-c tessedit_create_tsv=1`
+        - `-c tessedit_create_txt=0`
+      - keeps file-based output read from generated `.tsv`.
+    - `scripts/windows-smoke.js`
+      - restored TSV smoke invocation and string-type assertion.
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 

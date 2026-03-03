@@ -56,7 +56,7 @@ const runTesseractCli = (buffer, options, callback) => {
 
   const args = [inputFileName, outputFileBase, '-l', options.lang]
   if (options.format === 'tsv') {
-    args.push('tsv')
+    args.push('-c', 'tessedit_create_tsv=1', '-c', 'tessedit_create_txt=0')
   }
 
   execFile(

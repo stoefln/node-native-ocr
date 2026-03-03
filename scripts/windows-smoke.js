@@ -11,6 +11,9 @@ async function main() {
   const txt = await recognize(buffer, {lang: 'eng'})
   assert.strictEqual(typeof txt, 'string')
 
+  const tsv = await recognize(buffer, {lang: 'eng', format: 'tsv'})
+  assert.strictEqual(typeof tsv, 'string')
+
   console.log('Windows OCR smoke test passed')
 }
 
