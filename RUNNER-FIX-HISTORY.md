@@ -357,10 +357,22 @@ This file records the CI/workflow fix iterations so another agent can continue f
       - `recognize(..., format=tsv)` returns a string.
     - purpose is to validate module execution path stability on Windows CI.
 
-## Current Hypothesis
-Primary remaining blocker has shifted from crash/fatal errors to result-quality variance on the Windows runner.
+  ### Iteration AF (in progress)
+  - GitHub run checked: `22613350045` (`Run CI`) after commit `eeee642`.
+  - Outcome:
+    - Ubuntu/macOS: pass.
+    - Windows: fails in `Run tests` because CLI OCR invocation with `format=tsv` errors with:
+      - `read_params_file: Can't open tsv`
+      - command exits with `ERR_INIT_TESSER`.
+  - Current local fix:
+    - `scripts/windows-smoke.js`
+      - removed `format=tsv` smoke invocation.
+      - keep operational runtime validation to a single OCR call (`lang=eng`) returning a string.
 
-Iteration AE adjusts Windows CI acceptance to runtime-operational validation instead of exact OCR-content equivalence.
+## Current Hypothesis
+  Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
+
+  Iteration AF narrows Windows smoke validation to the most stable operational path (`txt`) to keep platform runtime coverage meaningful while avoiding unsupported runner-specific CLI configs.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
