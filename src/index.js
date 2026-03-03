@@ -4,8 +4,7 @@ const os = require('os')
 const crypto = require('crypto')
 const {execFile} = require('child_process')
 const packageRootPath = path.resolve(__dirname, '..')
-const isWindows = process.platform === 'win32'
-const bindings = isWindows ? null : require('node-gyp-build')(packageRootPath)
+const bindings = require('node-gyp-build')(packageRootPath)
 
 const DEFAULT_LANG = 'eng'
 const LANG_DELIMITER = '+'
@@ -96,9 +95,7 @@ const makePromise = method => {
 
       options = handleOptions(options)
 
-      const invoke = isWindows
-        ? callback => runTesseractCli(arg, options, callback)
-        : callback => bindings[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', callback)
+      const invoke = callback => bindings[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', callback)
 
       invoke((err, text) => {
         if (err) {

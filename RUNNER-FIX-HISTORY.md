@@ -301,10 +301,21 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - use simple relative input/output file names for tesseract args.
     - normalize `--tessdata-dir` path separators to forward slashes on Windows.
 
-## Current Hypothesis
-Primary remaining blocker is Windows tesseract CLI argument/path handling in the CI environment.
+### Iteration AA (in progress)
+- GitHub run checked: `22605606516` (`Run CI`) after commit `996283e`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: CLI path still fails; stderr only reports the tesseract banner + command failure.
+- Current local fix:
+  - `src/index.js`
+    - disable Windows CLI fallback path and route Windows back through native addon call path.
+  - Rationale:
+    - With AVA removed from Windows execution, this validates whether the original hard crash was test-runner related.
 
-Iteration Z simplifies process cwd/paths to avoid Windows command-line path edge cases.
+## Current Hypothesis
+Primary remaining blocker is unresolved Windows runtime behavior; CLI fallback remains unreliable in this environment.
+
+Iteration AA re-tests the native addon path under the new Node smoke test runner.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
