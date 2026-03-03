@@ -269,10 +269,20 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `binding.gyp`
     - restored Windows link inputs for PNG/TIFF (`libpng16.lib`, `tiff.lib`) and their library dirs.
 
-## Current Hypothesis
-Primary remaining blocker is Windows addon link dependency parity after re-enabling PNG/TIFF in Leptonica.
+### Iteration X (in progress)
+- GitHub run checked: `22604888236` (`Run CI`) after commit `0450658`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: `scripts/windows-smoke.js` fails because CLI OCR command exits non-zero with generic `Command failed` message and no stderr.
+- Current local fix:
+  - `src/index.js`
+    - use `.jpg` extension for temporary CLI input file (instead of `.img`).
+    - include `stderr` + `stdout` + process error message in thrown error text for next-iteration diagnostics.
 
-Iteration W restores matching Windows link libraries in `binding.gyp`.
+## Current Hypothesis
+Primary remaining blocker is Windows CLI runtime invocation details (input file handling/diagnostics), not build or linking.
+
+Iteration X improves input compatibility and observability for the next run.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:

@@ -46,7 +46,7 @@ const handleOptions = (options = {}) => {
 const runTesseractCli = (buffer, options, callback) => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'node-native-ocr-'))
   const tempFileName = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
-  const inputPath = path.join(tempDir, `${tempFileName}.img`)
+  const inputPath = path.join(tempDir, `${tempFileName}.jpg`)
   const executable = fs.existsSync(DEFAULT_TESSERACT_BINARY) ? DEFAULT_TESSERACT_BINARY : 'tesseract'
 
   fs.writeFileSync(inputPath, buffer)
@@ -60,7 +60,8 @@ const runTesseractCli = (buffer, options, callback) => {
     fs.rmSync(tempDir, {recursive: true, force: true})
 
     if (error) {
-      const commandError = new Error((stderr || error.message || 'Tesserat error occured.').trim())
+      const message = [stderr, stdout, error.message].filter(Boolean).join('\n').trim()
+      const commandError = new Error(message || 'Tesserat error occured.')
       commandError.code = 'ERR_INIT_TESSER'
       callback(commandError)
       return
