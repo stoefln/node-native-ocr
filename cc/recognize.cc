@@ -1,6 +1,7 @@
 #include <napi.h>
 #include <uv.h>
 #include <stdint.h>
+#include <cstdio>
 #include <fstream>
 #include <vector>
 #ifdef _WIN32
@@ -23,7 +24,7 @@ private:
   std::string _lang;
   std::string _path;
   bool _tsvOutput;
-  char *_outText;
+  char *_outText = nullptr;
 
   Pix *ReadImage()
   {
@@ -66,7 +67,9 @@ public:
   void OnOK() override
   {
     HandleScope scope(Env());
-    Callback().Call({Env().Null(), String::New(Env(), _outText)});
+    Callback().Call({Env().Null(), String::New(Env(), _outText == nullptr ? "" : _outText)});
+    delete[] _outText;
+    _outText = nullptr;
   }
 
   void Execute() override
@@ -85,7 +88,7 @@ public:
 
     if (tess_failed)
     {
-      printf(error_message);
+      fprintf(stderr, "%s", error_message);
       SetError(error_code);
       return;
     }

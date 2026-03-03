@@ -212,12 +212,22 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - On Windows, bypass `pixReadMem` path and explicitly write buffer to a temp file + call `pixRead(tempFile)`.
     - Fallback to `pixReadMem` remains for non-Windows.
 
-## Current Hypothesis
-Primary blockers are now split:
-- Ubuntu: libtiff CMake config was over-constrained and failed CMath detection.
-- macOS/Windows: Leptonica’s TIFF include handling needs compatibility with both `FindTIFF` variable variants.
+### Iteration S (in progress)
+- GitHub run checked: `22603559368` (`Run CI`) after commit `1582962`.
+- Outcome:
+  - Ubuntu/macOS: pass.
+  - Windows: still crashes in `Run tests` with `3221226505`.
+- New root-cause hypothesis:
+  - Native error path uses `printf(error_message)` as a format string, which can crash with fast-fail if message text contains `%` tokens.
+- Current local fix:
+  - `cc/recognize.cc`
+    - replaced `printf(error_message)` with `fprintf(stderr, "%s", error_message)`.
+    - initialized `_outText` to `nullptr`, guarded `String::New` against null, and freed `_outText` after callback.
 
-Iteration I targets both in a single minimal patch to validate in the next run.
+## Current Hypothesis
+Primary blocker is now Windows runtime test crash (`3221226505`) after all build stages succeed.
+
+Latest change in Iteration S targets a likely native fast-fail root cause in error logging/handling.
 
 ## Handoff Checklist (for next agent)
 1. Push latest commit:
