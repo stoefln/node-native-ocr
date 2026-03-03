@@ -379,6 +379,20 @@ This file records the CI/workflow fix iterations so another agent can continue f
       - keeps file-based output read from generated `.tsv`.
     - `scripts/windows-smoke.js`
       - restored TSV smoke invocation and string-type assertion.
+
+  ### Iteration AH (in progress)
+  - GitHub run checked: `22618965487` (`Build & Publish tagged release`) for tag `v0.4.1`.
+  - Outcome:
+    - Build matrix jobs succeeded.
+    - `publish` job failed at `npm publish` with:
+      - `Access token expired or revoked`
+      - `npm error code E404` during registry PUT.
+  - Current local fix:
+    - `.github/workflows/tagged_release.yaml`
+      - workflow permissions updated to `contents: write`.
+      - add explicit GitHub release creation step (`softprops/action-gh-release@v2`) attaching packed tarball and prebuild `.node` artifacts.
+      - add npm auth validation step (`npm whoami`) and gate `npm publish` behind successful token check.
+      - when npm token is missing/invalid, emit warning and skip npm publish instead of failing whole release workflow.
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 
