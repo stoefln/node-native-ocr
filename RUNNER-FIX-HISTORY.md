@@ -464,6 +464,17 @@ This file records the CI/workflow fix iterations so another agent can continue f
         - `target: linux-x64`
         - `node_arch: x64`
         - `build_for_arch: x64`
+
+  ### Iteration AO (in progress)
+  - GitHub run checked: `22662557655` (`Build & Publish tagged release`) for tag `v0.4.8`.
+  - Outcome:
+    - all platform build jobs succeeded (`darwin-arm64`, `darwin-x64`, `win32-x64`, `linux-x64`).
+    - publish failed at npm with: `You cannot publish over the previously published versions: 0.3.15`.
+  - Root cause:
+    - package version in `package.json` remained `0.3.15` and was not synchronized with release tags.
+  - Current local fix:
+    - `.github/workflows/tagged_release.yaml`
+      - add step in publish job to align `package.json` version from `github.ref_name` (strip leading `v`) before `npm pack`/`npm publish`.
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 

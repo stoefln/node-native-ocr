@@ -117,6 +117,12 @@ jobs:
       - name: Install dependencies (skip scripts)
         run: npm ci --ignore-scripts
 
+      - name: Align package version with tag
+        env:
+          TAG_VERSION: ${{ github.ref_name }}
+        run: |
+          node -e "const fs=require('fs'); const tag=process.env.TAG_VERSION || ''; const version=tag.startsWith('v') ? tag.slice(1) : tag; if(!version){throw new Error('Missing tag version');} const pkgPath='package.json'; const pkg=JSON.parse(fs.readFileSync(pkgPath,'utf8')); if(pkg.version!==version){pkg.version=version; fs.writeFileSync(pkgPath, JSON.stringify(pkg,null,2)+'\\n'); console.log('Updated package version to', version);} else {console.log('Package version already', version);}"
+
       - name: Show package contents
         run: npm pack --dry-run
 
