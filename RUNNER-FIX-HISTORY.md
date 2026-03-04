@@ -414,6 +414,18 @@ This file records the CI/workflow fix iterations so another agent can continue f
         - `prebuilds-darwin-x64.zip`
         - `prebuilds-win32-x64.zip`
       - upload only `release-assets/*` in `softprops/action-gh-release`.
+
+  ### Iteration AK (in progress)
+  - GitHub run checked: `22652745837` (`Build & Publish tagged release`) for tag `v0.4.4`.
+  - Outcome:
+    - Build matrix + GitHub release asset upload succeeded.
+    - `npm publish --provenance` failed with npm auth errors (`Access token expired or revoked`, `E404`).
+  - Root-cause hypothesis:
+    - publish job still had token-auth context via `setup-node` registry wiring, which interfered with pure OIDC trusted publishing.
+  - Current local fix:
+    - `.github/workflows/tagged_release.yaml`
+      - remove `registry-url` from publish job `actions/setup-node` step.
+      - explicitly clear `NODE_AUTH_TOKEN` in publish step to force tokenless trusted publishing path.
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 
