@@ -426,6 +426,23 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - `.github/workflows/tagged_release.yaml`
       - remove `registry-url` from publish job `actions/setup-node` step.
       - explicitly clear `NODE_AUTH_TOKEN` in publish step to force tokenless trusted publishing path.
+
+  ### Iteration AL (in progress)
+  - GitHub run checked: `22653458636` (`Build & Publish tagged release`) for tag `v0.4.5`.
+  - Outcome:
+    - Build matrix and GitHub release creation succeeded.
+    - npm publish failed with `ENEEDAUTH` (no npm auth in effective publish context).
+  - Cross-check performed:
+    - compared against working workflow in `/Users/steph/Workspace/repeato-native-cv/.github/workflows/publish.yml`.
+    - key differences in working workflow publish job:
+      - `actions/setup-node` includes `registry-url: https://registry.npmjs.org`.
+      - npm is upgraded before publish.
+      - no forced empty `NODE_AUTH_TOKEN` override.
+  - Current local fix:
+    - `.github/workflows/tagged_release.yaml`
+      - restore `registry-url` in publish job `setup-node` step.
+      - add `Upgrade npm for trusted publishing` step.
+      - remove forced `NODE_AUTH_TOKEN: ''` override from publish step.
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 
