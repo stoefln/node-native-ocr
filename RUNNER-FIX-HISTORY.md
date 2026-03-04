@@ -401,6 +401,19 @@ This file records the CI/workflow fix iterations so another agent can continue f
       - removed `NPM_RELEASE_PUBLISH_TOKEN`-based auth check step.
       - removed conditional publish gate tied to token validation.
       - switched publish command to `npm publish --provenance` (OIDC-compatible publish path).
+
+  ### Iteration AJ (in progress)
+  - GitHub run checked: `22651972932` (`Build & Publish tagged release`) for tag `v0.4.3`.
+  - Outcome:
+    - publish job failed in `Create GitHub release`.
+    - root cause: duplicate asset names (`node-native-ocr.node`) from `prebuilds/**/*.node` upload pattern cause release-asset collision (`Not Found` from release asset update path).
+  - Current local fix:
+    - `.github/workflows/tagged_release.yaml`
+      - add `Prepare release assets` step that creates uniquely named archives:
+        - `prebuilds-darwin-arm64.zip`
+        - `prebuilds-darwin-x64.zip`
+        - `prebuilds-win32-x64.zip`
+      - upload only `release-assets/*` in `softprops/action-gh-release`.
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 

@@ -116,12 +116,23 @@ jobs:
       - name: Pack release tarball
         run: npm pack
 
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          cp ./*.tgz release-assets/
+          for target in prebuilds/*; do
+            [ -d "$target" ] || continue
+            target_name=$(basename "$target")
+            (cd prebuilds && zip -r "../release-assets/prebuilds-${target_name}.zip" "$target_name")
+          done
+          ls -la release-assets
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            *.tgz
-            prebuilds/**/*.node
+            release-assets/*
 
       - name: Publish tagged release
         run: npm publish --provenance
