@@ -454,6 +454,16 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - `.github/workflows/tagged_release.yaml`
       - restore build job `setup-node` fields (`architecture`, `cache`) under correct `with` block.
       - keep trusted-publish settings in the `publish` job (`registry-url` + npm upgrade).
+
+  ### Iteration AN (in progress)
+  - User request: include Linux in release artifacts and iterate until release workflow succeeds.
+  - Current local fix:
+    - `.github/workflows/tagged_release.yaml`
+      - add Linux build target to release matrix:
+        - `os: ubuntu-latest`
+        - `target: linux-x64`
+        - `node_arch: x64`
+        - `build_for_arch: x64`
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 

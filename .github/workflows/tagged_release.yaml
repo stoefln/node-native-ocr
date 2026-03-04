@@ -29,6 +29,10 @@ jobs:
             target: win32-x64
             node_arch: x64
             build_for_arch: x64
+          - os: ubuntu-latest
+            target: linux-x64
+            node_arch: x64
+            build_for_arch: x64
 
     steps:
       - name: Checkout
