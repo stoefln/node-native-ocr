@@ -123,26 +123,5 @@ jobs:
             *.tgz
             prebuilds/**/*.node
 
-      - name: Check npm publish auth
-        id: npm-auth
-        shell: bash
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_PUBLISH_TOKEN }}
-        run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "can_publish=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::NPM_RELEASE_PUBLISH_TOKEN is not set; skipping npm publish."
-            exit 0
-          fi
-          if npm whoami >/dev/null 2>&1; then
-            echo "can_publish=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "can_publish=false" >> "$GITHUB_OUTPUT"
-          echo "::warning::NPM token validation failed (expired/revoked/invalid); skipping npm publish."
-
       - name: Publish tagged release
-        if: steps.npm-auth.outputs.can_publish == 'true'
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_PUBLISH_TOKEN }}
+        run: npm publish --provenance

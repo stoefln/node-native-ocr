@@ -393,6 +393,14 @@ This file records the CI/workflow fix iterations so another agent can continue f
       - add explicit GitHub release creation step (`softprops/action-gh-release@v2`) attaching packed tarball and prebuild `.node` artifacts.
       - add npm auth validation step (`npm whoami`) and gate `npm publish` behind successful token check.
       - when npm token is missing/invalid, emit warning and skip npm publish instead of failing whole release workflow.
+
+  ### Iteration AI (in progress)
+  - User configured npm Trusted Publishing (GitHub OIDC), so token-based npm auth gating is no longer correct.
+  - Current local fix:
+    - `.github/workflows/tagged_release.yaml`
+      - removed `NPM_RELEASE_PUBLISH_TOKEN`-based auth check step.
+      - removed conditional publish gate tied to token validation.
+      - switched publish command to `npm publish --provenance` (OIDC-compatible publish path).
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 
