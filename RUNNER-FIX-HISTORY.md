@@ -443,6 +443,17 @@ This file records the CI/workflow fix iterations so another agent can continue f
       - restore `registry-url` in publish job `setup-node` step.
       - add `Upgrade npm for trusted publishing` step.
       - remove forced `NODE_AUTH_TOKEN: ''` override from publish step.
+
+  ### Iteration AM (in progress)
+  - GitHub run checked: `22662414407` (`Build & Publish tagged release`) after workflow alignment commit.
+  - Outcome:
+    - run failed before job creation due workflow syntax error (`Invalid workflow file ... line 51`).
+  - Root cause:
+    - accidental insertion of publish-only `registry-url` + npm-upgrade block into the build job `Setup Node.js` section, breaking YAML structure.
+  - Current local fix:
+    - `.github/workflows/tagged_release.yaml`
+      - restore build job `setup-node` fields (`architecture`, `cache`) under correct `with` block.
+      - keep trusted-publish settings in the `publish` job (`registry-url` + npm upgrade).
 ## Current Hypothesis
   Primary remaining blocker has shifted from crash/fatal errors to CLI capability variance on the Windows runner (notably `tsv` config availability).
 
