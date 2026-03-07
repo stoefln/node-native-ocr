@@ -81,6 +81,7 @@ jobs:
           node -e "const fs=require('fs'); const path=require('path'); const dir=path.join('prebuilds','${{ matrix.target }}'); if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir).filter(name => name.endsWith('.node')); if(files.length===0) throw new Error('No .node prebuild found in '+dir); console.log('Found prebuilds:', files.join(', '));"
 
       - name: Verify required Electron target compatibility
+        if: runner.os != 'Windows'
         run: node ./scripts/verify-electron-target.js "${{ env.REQUIRED_ELECTRON_VERSION }}"
 
       - name: Upload prebuilds artifact

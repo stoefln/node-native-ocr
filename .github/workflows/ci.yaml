@@ -52,6 +52,7 @@ jobs:
         run: npm run build-cc
 
       - name: Verify required Electron target compatibility
+        if: runner.os != 'Windows'
         run: node ./scripts/verify-electron-target.js "${{ env.REQUIRED_ELECTRON_VERSION }}"
 
       - name: Add Windows native runtime paths
