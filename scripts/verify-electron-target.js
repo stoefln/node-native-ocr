@@ -5,6 +5,7 @@ const path = require('path')
 
 const RequiredElectronVersion = process.argv[2] || '40.8.0'
 const PackageRootPath = path.resolve(__dirname, '..')
+const NpxExecutable = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 
 /**
  * Run Electron in Node mode and return runtime versions JSON.
@@ -17,7 +18,7 @@ function getElectronRuntimeVersions(version) {
     "process.stdout.write(JSON.stringify(out));"
   ].join(' ')
 
-  const result = spawnSync('npx', ['-y', `electron@${version}`, '-e', probeCode], {
+  const result = spawnSync(NpxExecutable, ['-y', `electron@${version}`, '-e', probeCode], {
     cwd: PackageRootPath,
     env: {
       ...process.env,
@@ -25,6 +26,10 @@ function getElectronRuntimeVersions(version) {
     },
     encoding: 'utf8'
   })
+
+  if (result.error) {
+    throw new Error(`Failed to spawn Electron ${version} probe: ${result.error.message}`)
+  }
 
   if (result.status !== 0) {
     process.stderr.write(result.stdout || '')
