@@ -5,6 +5,9 @@ on:
     tags:
       - v*
 
+env:
+  REQUIRED_ELECTRON_VERSION: 40.8.0
+
 permissions:
   id-token: write
   contents: write
@@ -77,6 +80,9 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const path=require('path'); const dir=path.join('prebuilds','${{ matrix.target }}'); if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir).filter(name => name.endsWith('.node')); if(files.length===0) throw new Error('No .node prebuild found in '+dir); console.log('Found prebuilds:', files.join(', '));"
 
+      - name: Verify required Electron target compatibility
+        run: node ./scripts/verify-electron-target.js "${{ env.REQUIRED_ELECTRON_VERSION }}"
+
       - name: Upload prebuilds artifact
         uses: actions/upload-artifact@v4
         with:
@@ -113,6 +119,10 @@ jobs:
           cp -r prebuilds-all/* prebuilds/
           ls -la prebuilds/
           find prebuilds -name '*.node' -type f
+
+      - name: Verify all release prebuild targets are present
+        run: |
+          node -e "const fs=require('fs'); const path=require('path'); const targets=['darwin-arm64','darwin-x64','win32-x64','linux-x64']; for (const target of targets) { const dir=path.join('prebuilds', target); if (!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir).filter(name => name.endsWith('.node')); if (files.length === 0) throw new Error('No .node prebuild found in '+dir); } console.log('All required prebuild targets exist.');"
 
       - name: Install dependencies (skip scripts)
         run: npm ci --ignore-scripts

@@ -1,6 +1,6 @@
 {
   "name": "node-native-ocr",
-  "version": "0.3.15",
+  "version": "0.4.10",
   "description": "Native Node.js bindings for the Tesseract OCR project.",
   "gypfile": true,
   "main": "src/index.js",
@@ -33,7 +33,7 @@
     "node-gyp-build": "^4.8.4"
   },
   "scripts": {
-    "install": "node-gyp-build",
+    "install": "node ./scripts/install.js",
     "init": "node ./scripts/init-submodules.js",
     "patch": "node ./scripts/patch-leptonica.js",
     "configure": "node-gyp configure",
@@ -96,7 +96,8 @@
     "prebuilds/",
     "LICENSE-MIT",
     "package.json",
-    "README.md"
+    "README.md",
+    "scripts/"
   ],
   "binary": {
     "napi_versions": [

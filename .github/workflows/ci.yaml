@@ -5,6 +5,9 @@ on:
       - main
   pull_request:
 
+env:
+  REQUIRED_ELECTRON_VERSION: 40.8.0
+
 jobs:
   test:
     strategy:
@@ -47,6 +50,9 @@ jobs:
 
       - name: Build native addon
         run: npm run build-cc
+
+      - name: Verify required Electron target compatibility
+        run: node ./scripts/verify-electron-target.js "${{ env.REQUIRED_ELECTRON_VERSION }}"
 
       - name: Add Windows native runtime paths
         if: runner.os == 'Windows'
