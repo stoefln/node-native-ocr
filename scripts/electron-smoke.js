@@ -8,6 +8,7 @@ const path = require('path')
 const ElectronVersion = process.argv[2] || '40.8.0'
 const RepoRoot = path.resolve(__dirname, '..')
 const FixturePath = path.join(RepoRoot, 'test', 'fixtures', 'test.jpg')
+const TessdataPath = path.join(RepoRoot, 'tessdata')
 const TempRoot = path.join(RepoRoot, 'temp', 'electron-bundle-smoke')
 const AppRoot = path.join(TempRoot, 'resources', 'app')
 const NpxExecutable = 'npx'
@@ -110,7 +111,7 @@ function runDirectElectronSmoke() {
 			'',
 			'app.whenReady().then(async () => {',
 			'  try {',
-			"    const txt = await mod.recognize(fs.readFileSync(fixture), {lang: 'eng'})",
+			`    const txt = await mod.recognize(fs.readFileSync(fixture), {lang: 'eng', tessdataPath: ${JSON.stringify(TessdataPath)}})`,
 			"    assert.strictEqual(typeof txt, 'string')",
 			"    assert.ok(txt.length > 0)",
 			"    process.stdout.write('Electron main-process smoke test passed\\n')",
@@ -170,7 +171,7 @@ function runBundledLayoutSmoke() {
 			'',
 			'app.whenReady().then(async () => {',
 			'  try {',
-			"    const text = await recognize(fs.readFileSync(fixturePath), {lang: 'eng'})",
+			`    const text = await recognize(fs.readFileSync(fixturePath), {lang: 'eng', tessdataPath: ${JSON.stringify(TessdataPath)}})`,
 			"    assert.strictEqual(typeof text, 'string')",
 			"    assert.ok(text.length > 0)",
 			"    process.stdout.write('Electron bundled-layout smoke test passed\\n')",

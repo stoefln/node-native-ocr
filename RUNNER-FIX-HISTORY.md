@@ -580,3 +580,21 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `scripts/electron-smoke.js`
     - relaxed both direct and bundled smoke assertions from `length > 0` to type-only checks (`typeof ... === 'string'`).
     - keeps smoke tests focused on runtime viability instead of OCR content quality on CI runner images.
+
+### Iteration AU (in progress)
+- User requirement update:
+  - keep strict non-empty OCR assertions for Electron smoke tests.
+- GitHub run checked: `23135983911` (`Run CI`) after commit `6b15748`.
+- Outcome:
+  - run still fails in `Run Electron smoke tests`.
+  - direct probe fails on strict assertion:
+    - `assert.ok(txt.length > 0)`
+- Root cause analysis:
+  - Windows CLI path in `src/index.js` can currently treat a failed tesseract invocation as success when output file exists, even if file content is empty.
+  - this masks the real CLI failure and produces empty text, triggering strict assertion failure later.
+- Current local fix:
+  - `src/index.js`
+    - when `execFile` returns `error`, only accept output-file fallback if output text is non-empty after trim.
+    - empty output now surfaces as `ERR_INIT_TESSER` with captured stderr/stdout details.
+  - `scripts/electron-smoke.js`
+    - pass explicit `tessdataPath` (repo `tessdata`) for both direct and bundled Electron probes.

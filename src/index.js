@@ -79,9 +79,11 @@ const runTesseractCli = (buffer, options, callback) => {
       if (fs.existsSync(outputPath)) {
         try {
           const outputText = fs.readFileSync(outputPath, 'utf8')
-          fs.rmSync(tempDir, {recursive: true, force: true})
-          callback(null, outputText)
-          return
+          if (outputText.trim().length > 0) {
+            fs.rmSync(tempDir, {recursive: true, force: true})
+            callback(null, outputText)
+            return
+          }
         } catch (readError) {
           const readMessage = readError && readError.message ? readError.message : 'Failed to read tesseract output.'
           const outputReadError = new Error(readMessage)
