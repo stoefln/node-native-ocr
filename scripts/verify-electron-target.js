@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const {spawnSync} = require('child_process')
+const fs = require('fs')
 const path = require('path')
 
 const RequiredElectronVersion = process.argv[2] || '40.8.0'
@@ -33,12 +34,20 @@ function getSpawnEnv() {
  * @returns {{electron: string|null, napi: string|null}}
  */
 function getElectronRuntimeVersions(version) {
-  const probeCode = [
-    "const out = { electron: process.versions.electron || null, napi: process.versions.napi || null };",
-    "process.stdout.write(JSON.stringify(out));"
-  ].join(' ')
+  const probeRoot = path.join(PackageRootPath, 'temp', 'electron-target-verify')
+  const probeScriptPath = path.join(probeRoot, 'probe.js')
 
-  const result = spawnSync(NpxExecutable, ['-y', `electron@${version}`, '-e', probeCode], {
+  fs.mkdirSync(probeRoot, {recursive: true})
+  fs.writeFileSync(
+    probeScriptPath,
+    [
+      "const out = { electron: process.versions.electron || null, napi: process.versions.napi || null }",
+      'process.stdout.write(JSON.stringify(out))'
+    ].join('\n'),
+    'utf8'
+  )
+
+  const result = spawnSync(NpxExecutable, ['-y', `electron@${version}`, probeScriptPath], {
     cwd: PackageRootPath,
     shell: process.platform === 'win32',
     env: {
@@ -47,6 +56,8 @@ function getElectronRuntimeVersions(version) {
     },
     encoding: 'utf8'
   })
+
+  fs.rmSync(probeRoot, {recursive: true, force: true})
 
   if (result.error) {
     throw new Error(`Failed to spawn Electron ${version} probe: ${result.error.message}`)

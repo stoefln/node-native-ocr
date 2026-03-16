@@ -95,29 +95,38 @@ function createNodeModuleLink(targetPath, sourcePath) {
 }
 
 function runDirectElectronSmoke() {
-	const smokeCode = [
-		"const assert = require('assert');",
-		`const fixture = ${JSON.stringify(FixturePath)};`,
-		"const fs = require('fs');",
-		"const { app } = require('electron');",
-		`const mod = require(${JSON.stringify(path.join(RepoRoot, 'src'))});`,
-		"app.whenReady().then(async () => {",
-		"  try {",
-		"    const txt = await mod.recognize(fs.readFileSync(fixture), { lang: 'eng' });",
-		"    assert.strictEqual(typeof txt, 'string');",
-		"    assert.ok(txt.length > 0);",
-		"    process.stdout.write('Electron main-process smoke test passed\\n');",
-		"    app.exit(0);",
-		"  } catch (error) {",
-		"    console.error(error);",
-		"    app.exit(1);",
-		"  }",
-		"});"
-	].join(' ')
+	const directProbeRoot = path.join(TempRoot, 'direct-probe')
+	const directProbeScriptPath = path.join(directProbeRoot, 'main.js')
+
+	ensureCleanDir(directProbeRoot)
+	writeUtf8(
+		directProbeScriptPath,
+		[
+			"const assert = require('assert')",
+			"const fs = require('fs')",
+			"const {app} = require('electron')",
+			`const fixture = ${JSON.stringify(FixturePath)}`,
+			`const mod = require(${JSON.stringify(path.join(RepoRoot, 'src'))})`,
+			'',
+			'app.whenReady().then(async () => {',
+			'  try {',
+			"    const txt = await mod.recognize(fs.readFileSync(fixture), {lang: 'eng'})",
+			"    assert.strictEqual(typeof txt, 'string')",
+			"    assert.ok(txt.length > 0)",
+			"    process.stdout.write('Electron main-process smoke test passed\\n')",
+			'    app.exit(0)',
+			'  } catch (error) {',
+			'    console.error(error)',
+			'    app.exit(1)',
+			'  }',
+			'})',
+			''
+		].join('\n')
+	)
 
 	const result = run(
 		NpxExecutable,
-		['-y', `electron@${ElectronVersion}`, '-e', smokeCode],
+		['-y', `electron@${ElectronVersion}`, directProbeScriptPath],
 		{
 			cwd: RepoRoot,
 			shell: process.platform === 'win32',

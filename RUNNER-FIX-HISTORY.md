@@ -535,3 +535,34 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - set `shell: process.platform === 'win32'` for spawn on Windows.
   - `scripts/electron-smoke.js`
     - same `npx` + `shell` change for both Electron smoke spawn calls.
+
+### Iteration AR (in progress)
+- User request:
+  - reduce CI time by caching `Build native dependencies` outputs while debugging non-build issues.
+- Current local fix:
+  - `.github/workflows/ci.yaml`
+    - added top-level cache version knob:
+      - `NATIVE_DEPS_CACHE_VERSION: v1`
+    - added `Restore native dependencies cache` step using `actions/cache@v4` for Windows build directories:
+      - `tesseract/build`, `leptonica/build`, `libtiff/build`, `libpng/build`, `libjpeg/build`, `zlib/build`
+    - cache key includes:
+      - runner OS, runner arch, Node version, manual cache version, and hashes of native build scripts/patches.
+    - gated `Build native dependencies` to run only when cache miss occurs.
+    - added explicit cache status step for easier run diagnostics.
+- Manual rebuild trigger:
+  - bump `NATIVE_DEPS_CACHE_VERSION` in workflow file.
+
+### Iteration AS (in progress)
+- GitHub run checked: `23135081029` (`Run CI`) after commit `3615369`.
+- Outcome:
+  - Windows-only CI still fails at `Verify required Electron target compatibility`.
+  - New error changed from `EINVAL` to shell parsing failure:
+    - `SyntaxError: Unexpected end of input`
+    - `'null' is not recognized as an internal or external command`
+- Root cause:
+  - Inline `-e` JavaScript passed through Windows shell was split/mangled by quoting rules.
+- Current local fix:
+  - `scripts/verify-electron-target.js`
+    - switched to file-based probe execution (temp script file) instead of `-e` inline code.
+  - `scripts/electron-smoke.js`
+    - switched direct Electron smoke probe to file-based script execution instead of `-e` inline code.

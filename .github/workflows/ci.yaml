@@ -7,6 +7,7 @@ on:
 
 env:
   REQUIRED_ELECTRON_VERSION: 40.8.0
+  NATIVE_DEPS_CACHE_VERSION: v1
 
 jobs:
   test:
@@ -41,12 +42,37 @@ jobs:
       - name: Install dependencies (skip scripts)
         run: npm ci --ignore-scripts
 
+      - name: Restore native dependencies cache
+        id: native-deps-cache
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            tesseract/build
+            leptonica/build
+            libtiff/build
+            libpng/build
+            libjpeg/build
+            zlib/build
+          key: native-deps-${{ runner.os }}-${{ runner.arch }}-node${{ matrix.node }}-${{ env.NATIVE_DEPS_CACHE_VERSION }}-${{ hashFiles('scripts/build-tesseract.js', 'scripts/clean-tesseract.js', 'patches/**') }}
+
       - name: Build native dependencies
+        if: runner.os != 'Windows' || steps.native-deps-cache.outputs.cache-hit != 'true'
         env:
           BUILD_FOR_ARCH: ${{ runner.arch == 'X64' && 'x64' || 'arm64' }}
         run: |
           npm run clean-tesseract
           npm run build-tesseract
+
+      - name: Native dependencies cache status
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if ("${{ steps.native-deps-cache.outputs.cache-hit }}" -eq "true") {
+            Write-Host "Using cached native dependencies build outputs."
+          } else {
+            Write-Host "Native dependencies cache miss; rebuilt native dependencies."
+          }
 
       - name: Build native addon
         run: npm run build-cc

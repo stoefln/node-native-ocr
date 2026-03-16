@@ -135,3 +135,43 @@ gh run view <run-id> --log-failed
   - local validation:
     - `node --check scripts/verify-electron-target.js`
     - `node --check scripts/electron-smoke.js`
+
+### Iteration Z (completed)
+- Optimization request:
+  - `Build native dependencies` is the slowest CI step (about 6+ minutes), so cache outputs while debugging runtime issues.
+- Current local fix:
+  - `.github/workflows/ci.yaml`
+    - added `NATIVE_DEPS_CACHE_VERSION` env key for manual cache busting.
+    - added `actions/cache@v4` restore step for:
+      - `tesseract/build`
+      - `leptonica/build`
+      - `libtiff/build`
+      - `libpng/build`
+      - `libjpeg/build`
+      - `zlib/build`
+    - cache key includes:
+      - OS, arch, node version
+      - `NATIVE_DEPS_CACHE_VERSION`
+      - `hashFiles('scripts/build-tesseract.js', 'scripts/clean-tesseract.js', 'patches/**')`
+    - `Build native dependencies` now runs only on cache miss.
+    - added explicit cache-hit/cache-miss status logging step.
+- How to force rebuild:
+  - bump `NATIVE_DEPS_CACHE_VERSION` (for example `v1` -> `v2`).
+
+### Iteration AA (current, in progress)
+- Failing run: `23135081029`
+- First failing step:
+  - `Verify required Electron target compatibility`
+- Root cause from log:
+  - `SyntaxError: Unexpected end of input`
+  - `'null' is not recognized as an internal or external command`
+  - This indicates Windows shell quoting broke inline `-e` JavaScript passed to Electron.
+- Current local fix:
+  - `scripts/verify-electron-target.js`
+    - replaced inline `-e` probe code with a temporary probe script file under `temp/electron-target-verify`.
+    - execute Electron against probe file path.
+  - `scripts/electron-smoke.js`
+    - replaced direct smoke `-e` invocation with temporary file-based probe script under `temp/electron-bundle-smoke/direct-probe`.
+  - local validation:
+    - `node --check scripts/verify-electron-target.js`
+    - `node --check scripts/electron-smoke.js`
