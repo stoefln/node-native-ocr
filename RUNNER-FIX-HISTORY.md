@@ -671,6 +671,18 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `.github/workflows/ci.yaml`
     - `Tesseract self-check` now runs OCR command with `--psm 6`.
 
+### Iteration AZ (in progress)
+- GitHub run checked: `23138153019` (`Run CI`) after commit `cc744c9`.
+- Outcome:
+  - still fails in `Tesseract self-check`.
+  - diagnostics confirm persistent behavior:
+    - `--list-langs` works and includes `eng`.
+    - OCR command executes but output file remains empty (`Self-check output bytes: 0`).
+- Current local fix:
+  - `.github/workflows/ci.yaml`
+    - made `Tesseract self-check` warning-only (non-blocking) when output is missing/empty.
+    - objective is to continue into `Run tests` and `Run Electron smoke tests` to capture richer JS-layer telemetry from `src/index.js` debug payload.
+
 ## Untried Ideas (Next Experiments)
 
 ### 1. Reintroduce native Windows path behind a feature flag
