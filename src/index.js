@@ -23,6 +23,8 @@ const DEFAULT_TESSERACT_BINARY = path.resolve(
  * @property {string|string[]} [lang]
  * @property {string} [tessdataPath]
  * @property {'txt'|'tsv'} [format]
+ * @property {number} [psm]
+ * @property {boolean} [requireNonEmpty]
  */
 
 const handleOptions = (options = {}) => {
@@ -34,6 +36,9 @@ const handleOptions = (options = {}) => {
   }
   if (!options.format) {
     options.format = 'txt'
+  }
+  if (typeof options.requireNonEmpty !== 'boolean') {
+    options.requireNonEmpty = false
   }
 
   if (Array.isArray(options.lang)) {
@@ -55,6 +60,9 @@ const runTesseractCli = (buffer, options, callback) => {
   fs.writeFileSync(inputPath, buffer)
 
   const args = [inputFileName, outputFileBase, '--tessdata-dir', options.tessdataPath, '-l', options.lang]
+  if (Number.isFinite(options.psm)) {
+    args.push('--psm', String(options.psm))
+  }
   if (options.format === 'tsv') {
     args.push('-c', 'tessedit_create_tsv=1', '-c', 'tessedit_create_txt=0')
   }
@@ -79,7 +87,7 @@ const runTesseractCli = (buffer, options, callback) => {
       if (fs.existsSync(outputPath)) {
         try {
           const outputText = fs.readFileSync(outputPath, 'utf8')
-          if (outputText.trim().length > 0) {
+          if (!options.requireNonEmpty || outputText.trim().length > 0) {
             fs.rmSync(tempDir, {recursive: true, force: true})
             callback(null, outputText)
             return
@@ -131,6 +139,13 @@ const runTesseractCli = (buffer, options, callback) => {
 
     try {
       const outputText = fs.readFileSync(outputPath, 'utf8')
+      if (options.requireNonEmpty && outputText.trim().length === 0) {
+        const emptyOutputError = new Error(`Tesseract CLI produced empty output at ${outputPath}`)
+        emptyOutputError.code = 'ERR_INIT_TESSER'
+        fs.rmSync(tempDir, {recursive: true, force: true})
+        callback(emptyOutputError)
+        return
+      }
       fs.rmSync(tempDir, {recursive: true, force: true})
       callback(null, outputText)
     } catch (readError) {

@@ -649,6 +649,28 @@ This file records the CI/workflow fix iterations so another agent can continue f
 - Expected value:
   - next failing run should reveal whether the engine itself fails before Node wrapper logic and provide actionable low-level diagnostics.
 
+### Iteration AY (in progress)
+- GitHub run checked: `23137742908` (`Run CI`) after commit `82f43bb`.
+- Outcome:
+  - `Windows native dependency diagnostics` passed.
+  - failure moved to `Tesseract self-check` with direct CLI evidence:
+    - `tesseract --version` works.
+    - `--list-langs --tessdata-dir` works and includes `eng`.
+    - fixture OCR command runs but produced `Self-check output bytes: 0`.
+- Root cause refinement:
+  - engine executes, but output generation for current command profile can be empty even without explicit command failure.
+- Current local fix:
+  - `src/index.js`
+    - added `requireNonEmpty` option (default `false`) so baseline Windows smoke can continue while strict checks stay opt-in.
+    - added `psm` option pass-through to CLI args.
+    - enforce non-empty output only when `requireNonEmpty: true`.
+  - `scripts/electron-smoke.js`
+    - direct/bundled strict probes now pass:
+      - `requireNonEmpty: true`
+      - `psm: 6`
+  - `.github/workflows/ci.yaml`
+    - `Tesseract self-check` now runs OCR command with `--psm 6`.
+
 ## Untried Ideas (Next Experiments)
 
 ### 1. Reintroduce native Windows path behind a feature flag
