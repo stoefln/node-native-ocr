@@ -612,3 +612,17 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `src/index.js`
     - pass explicit `--tessdata-dir <normalized path>` in tesseract CLI args.
     - keep `TESSDATA_PREFIX` env set as a secondary path hint.
+
+### Iteration AW (in progress)
+- GitHub run checked: `23136815637` (`Run CI`) after commit `15723c4`.
+- Outcome:
+  - still fails at `Run tests` in `scripts/windows-smoke.js`.
+  - command now includes explicit tessdata dir but still exits non-zero:
+    - `tesseract.exe <input>.jpg <output> --tessdata-dir D:/.../tessdata -l eng`
+    - output remains only tesseract banner.
+- Root cause refinement:
+  - possible Windows argument parsing issue with normalized tessdata path format.
+- Current local fix:
+  - `src/index.js`
+    - pass native path format for `--tessdata-dir` (do not normalize separators).
+    - keep `TESSDATA_PREFIX` environment variable in place.
