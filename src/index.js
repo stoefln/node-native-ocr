@@ -51,10 +51,11 @@ const runTesseractCli = (buffer, options, callback) => {
   const inputPath = path.join(tempDir, inputFileName)
   const outputBasePath = path.join(tempDir, outputFileBase)
   const executable = fs.existsSync(DEFAULT_TESSERACT_BINARY) ? DEFAULT_TESSERACT_BINARY : 'tesseract'
+  const normalizedTessdataPath = options.tessdataPath.replace(/\\/g, '/')
 
   fs.writeFileSync(inputPath, buffer)
 
-  const args = [inputFileName, outputFileBase, '-l', options.lang]
+  const args = [inputFileName, outputFileBase, '--tessdata-dir', normalizedTessdataPath, '-l', options.lang]
   if (options.format === 'tsv') {
     args.push('-c', 'tessedit_create_tsv=1', '-c', 'tessedit_create_txt=0')
   }

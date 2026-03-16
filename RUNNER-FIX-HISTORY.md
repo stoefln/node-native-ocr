@@ -598,3 +598,17 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - empty output now surfaces as `ERR_INIT_TESSER` with captured stderr/stdout details.
   - `scripts/electron-smoke.js`
     - pass explicit `tessdataPath` (repo `tessdata`) for both direct and bundled Electron probes.
+
+### Iteration AV (in progress)
+- GitHub run checked: `23136391146` (`Run CI`) after commit `963e883`.
+- Outcome:
+  - Failure moved earlier to `Run tests`.
+  - `scripts/windows-smoke.js` now surfaces real runtime failure:
+    - `Command failed: ... tesseract.exe <input>.jpg <output> -l eng`
+    - only tesseract banner was emitted in output.
+- Root cause hypothesis:
+  - language data path resolution is still fragile in runner context when relying on env-only setup.
+- Current local fix:
+  - `src/index.js`
+    - pass explicit `--tessdata-dir <normalized path>` in tesseract CLI args.
+    - keep `TESSDATA_PREFIX` env set as a secondary path hint.
