@@ -94,8 +94,35 @@ const runTesseractCli = (buffer, options, callback) => {
         }
       }
 
-      const message = [stderr, stdout, error.message].filter(Boolean).join('\n').trim()
-      const commandError = new Error(message || 'Tesserat error occured.')
+      const outputExists = fs.existsSync(outputPath)
+      let outputSize = -1
+      if (outputExists) {
+        try {
+          outputSize = fs.statSync(outputPath).size
+        } catch (_statError) {
+          outputSize = -1
+        }
+      }
+
+      const debugInfo = JSON.stringify(
+        {
+          executable,
+          args,
+          cwd: tempDir,
+          tessdataPath: options.tessdataPath,
+          envTessdataPrefix: options.tessdataPath,
+          outputPath,
+          outputExists,
+          outputSize,
+          stdout,
+          stderr,
+          processError: error.message
+        },
+        null,
+        2
+      )
+
+      const commandError = new Error(`Tesseract CLI failed.\n${debugInfo}`)
       commandError.code = 'ERR_INIT_TESSER'
       fs.rmSync(tempDir, {recursive: true, force: true})
       callback(commandError)

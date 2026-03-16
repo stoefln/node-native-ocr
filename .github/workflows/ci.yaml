@@ -100,6 +100,65 @@ jobs:
           "TMP=C:\t" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "TEMP=C:\t" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
+      - name: Windows native dependency diagnostics
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $addonPath = "$env:GITHUB_WORKSPACE\build\Release\node-native-ocr.node"
+          if (Test-Path $addonPath) {
+            Write-Host "Addon exists: $addonPath"
+            dumpbin /dependents $addonPath
+          } else {
+            Write-Host "Addon not found at: $addonPath"
+          }
+
+          Write-Host "\nExecutable resolution:" 
+          where.exe tesseract
+          where.exe node
+
+          $nativeDirs = @(
+            "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\leptonica\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libtiff\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libpng\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libjpeg\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\zlib\build\bin\bin"
+          )
+
+          foreach ($dir in $nativeDirs) {
+            if (Test-Path $dir) {
+              Write-Host "\nDLL snapshot from $dir"
+              Get-ChildItem -Path $dir -Filter *.dll | Select-Object -ExpandProperty Name
+            }
+          }
+
+      - name: Tesseract self-check
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tesseractExe = "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin\tesseract.exe"
+          $fixture = "$env:GITHUB_WORKSPACE\test\fixtures\test.jpg"
+          $tessdata = "$env:GITHUB_WORKSPACE\tessdata"
+          $selfCheckDir = Join-Path $env:RUNNER_TEMP "tesseract-selfcheck"
+          $selfCheckOut = Join-Path $selfCheckDir "ocr-selfcheck"
+
+          New-Item -ItemType Directory -Path $selfCheckDir -Force | Out-Null
+
+          & $tesseractExe --version
+          & $tesseractExe --list-langs --tessdata-dir $tessdata
+          & $tesseractExe $fixture $selfCheckOut --tessdata-dir $tessdata -l eng
+
+          $selfCheckTxt = "$selfCheckOut.txt"
+          if (!(Test-Path $selfCheckTxt)) {
+            throw "Self-check output not found: $selfCheckTxt"
+          }
+
+          $outSize = (Get-Item $selfCheckTxt).Length
+          Write-Host "Self-check output bytes: $outSize"
+          if ($outSize -le 0) {
+            throw "Self-check output is empty: $selfCheckTxt"
+          }
+
       - name: Run tests
         run: |
           npm test

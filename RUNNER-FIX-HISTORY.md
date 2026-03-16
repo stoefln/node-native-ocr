@@ -626,3 +626,112 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `src/index.js`
     - pass native path format for `--tessdata-dir` (do not normalize separators).
     - keep `TESSDATA_PREFIX` environment variable in place.
+
+### Iteration AX (in progress)
+- Strategic step executed:
+  - implemented observability batch from `Untried Ideas` items `3` + `4` + `5`.
+- Current local fix:
+  - `.github/workflows/ci.yaml`
+    - added `Windows native dependency diagnostics` step:
+      - `dumpbin /dependents build/Release/node-native-ocr.node`
+      - executable resolution snapshots (`where tesseract`, `where node`)
+      - DLL listings from all native dependency build output folders.
+    - added `Tesseract self-check` step before JS tests:
+      - run `tesseract.exe --version`
+      - run `--list-langs --tessdata-dir <repo>/tessdata`
+      - run direct OCR command against fixture and assert non-empty output file.
+  - `src/index.js`
+    - improved Windows CLI failure diagnostics with structured debug payload:
+      - executable, args, cwd
+      - tessdata path/env values
+      - output file existence/size
+      - full stdout/stderr/error message
+- Expected value:
+  - next failing run should reveal whether the engine itself fails before Node wrapper logic and provide actionable low-level diagnostics.
+
+## Untried Ideas (Next Experiments)
+
+### 1. Reintroduce native Windows path behind a feature flag
+- Idea:
+  - Add opt-in flag (for example `NATIVE_OCR_WINDOWS_BACKEND=native`) in `src/index.js`.
+  - Keep CLI as default, but allow CI to run dedicated native-path checks.
+- Why this is untried:
+  - We switched globally between native and CLI paths, but do not currently A/B test both backends in the same pipeline.
+- Expected value:
+  - Separates "CLI regression" from "native addon regression" quickly.
+
+### 2. Add a second CI job that runs only native Windows smoke
+- Idea:
+  - Keep current `test` job (CLI path), and add `test-native-windows` job that sets backend flag to native and runs one minimal OCR call.
+- Why this is untried:
+  - No dedicated CI lane currently validates native backend behavior independently from CLI fallback.
+- Expected value:
+  - Detects whether native backend is actually recoverable now while preserving the existing CI signal.
+
+### 3. Collect DLL dependency diagnostics before runtime tests
+- Idea:
+  - Add Windows step to inspect `build/Release/node-native-ocr.node` dependencies with `dumpbin /dependents` and verify required DLLs are on PATH.
+  - Emit `where tesseract.exe` and `where *.dll` snapshots for key libs.
+- Why this is untried:
+  - We added PATH entries, but we do not currently assert dependency closure before test execution.
+- Expected value:
+  - Makes missing/transitively missing DLL issues explicit instead of surfacing as vague runtime exits.
+
+### 4. Add explicit Tesseract self-check step in CI before JS tests
+- Idea:
+  - Run `tesseract.exe --version` and a direct OCR command on fixture from PowerShell prior to `npm test`.
+  - Also check `--list-langs` with the configured tessdata directory.
+- Why this is untried:
+  - CI currently validates through JS wrappers only.
+- Expected value:
+  - Distinguishes raw engine/runtime problems from Node wrapper logic issues.
+
+### 5. Add deep failure logging for CLI invocations
+- Idea:
+  - On Windows CLI failure, log:
+    - full args array as JSON
+    - cwd
+    - effective `TESSDATA_PREFIX`
+    - `stderr` and `stdout` lengths and content
+    - whether output file exists and its size
+- Why this is untried:
+  - Current error output is still sparse (often only banner text).
+- Expected value:
+  - Shortens debug loop by making each failing run self-diagnosing.
+
+### 6. Validate fixture integrity at runtime in CI
+- Idea:
+  - Add pre-test check for fixture bytes hash/size and ensure no CRLF or corruption in checkout.
+- Why this is untried:
+  - We assume fixture consistency; we do not assert it in workflow logs.
+- Expected value:
+  - Eliminates rare but costly "bad fixture on runner" hypothesis.
+
+### 7. Try Electron-runtime rebuild of addon explicitly
+- Idea:
+  - Build addon once for Electron runtime on Windows in CI:
+    - `npm_config_runtime=electron`
+    - `npm_config_target=${REQUIRED_ELECTRON_VERSION}`
+    - `npm_config_disturl=https://electronjs.org/headers`
+  - Then run native backend smoke in Electron.
+- Why this is untried:
+  - Current addon build uses plain Node headers; N-API should be compatible, but we have not experimentally validated an explicit Electron-target build lane.
+- Expected value:
+  - Rules out header/runtime mismatch concerns decisively.
+
+### 8. Add backend comparison smoke (CLI vs native) on same input
+- Idea:
+  - In one script, execute same fixture through both backends (when native backend is enabled) and compare basic invariants:
+    - both are non-empty strings
+    - both contain expected token(s) from fixture text.
+- Why this is untried:
+  - No direct differential test exists today.
+- Expected value:
+  - Reveals backend-specific breakage while avoiding exact full-text brittle assertions.
+
+## Recommendation
+- Yes, we should try building/validating the native module path on Windows again, but in a controlled parallel lane, not by replacing CLI immediately.
+- Suggested order:
+  - first implement ideas `3` + `4` + `5` (better observability),
+  - then implement ideas `1` + `2` (dual backend CI),
+  - then optionally add idea `7` (Electron-targeted addon build experiment).
