@@ -8,6 +8,26 @@ const PackageRootPath = path.resolve(__dirname, '..')
 const NpxExecutable = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 
 /**
+ * Filter out Windows pseudo env keys (for example "=C:") that can make spawnSync fail with EINVAL.
+ * @returns {NodeJS.ProcessEnv}
+ */
+function getSpawnEnv() {
+  if (process.platform !== 'win32') {
+    return {...process.env}
+  }
+
+  /** @type {NodeJS.ProcessEnv} */
+  const env = {}
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith('=')) {
+      continue
+    }
+    env[key] = process.env[key]
+  }
+  return env
+}
+
+/**
  * Run Electron in Node mode and return runtime versions JSON.
  * @param {string} version
  * @returns {{electron: string|null, napi: string|null}}
@@ -21,7 +41,7 @@ function getElectronRuntimeVersions(version) {
   const result = spawnSync(NpxExecutable, ['-y', `electron@${version}`, '-e', probeCode], {
     cwd: PackageRootPath,
     env: {
-      ...process.env,
+      ...getSpawnEnv(),
       ELECTRON_RUN_AS_NODE: '1'
     },
     encoding: 'utf8'

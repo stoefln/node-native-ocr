@@ -4,7 +4,7 @@
 Stabilize `node-native-ocr` in Electron on GitHub Actions Windows runners and keep iterating until CI is green for the Windows path.
 
 ## Current Status
-- Timestamp: `2026-03-16 08:22:19 UTC`
+- Timestamp: `2026-03-16 08:31:59 UTC`
 - Branch: `main`
 - Remote: `origin https://github.com/stoefln/node-native-ocr.git`
 - Scope is intentionally narrowed to Windows-only CI while fixing Electron runtime issues.
@@ -62,8 +62,8 @@ Stabilize `node-native-ocr` in Electron on GitHub Actions Windows runners and ke
   - Syntax check passed.
 
 ## Pending Actions
-- Commit and push current changes.
-- Observe the triggered `Run CI` workflow on GitHub Actions.
+- Commit and push the Windows `spawnSync` env sanitization fix.
+- Observe the next `Run CI` workflow on GitHub Actions.
 - If failing, inspect logs and apply the smallest targeted fix.
 
 ## Iteration Procedure (Do Not Skip)
@@ -92,10 +92,28 @@ gh run view <run-id> --log-failed
 
 ## Iteration Log
 
-### Iteration W (current, in progress)
+### Iteration W (completed)
 - Introduced Windows-only CI focus.
 - Added required Electron target verification on Windows.
 - Added `test-electron` script and CI step.
 - Added bundled-layout Electron smoke test helper script.
 - Created this handoff document.
-- Next immediate step: commit, push, and monitor the run.
+- Commit: `fd73349`
+- Run observed: `23134345761` (`Run CI`)
+- Outcome: failed at `Verify required Electron target compatibility`.
+
+### Iteration X (current, in progress)
+- Failing run: `23134345761`
+- First failing step:
+  - `Verify required Electron target compatibility`
+- Root cause from log:
+  - `Error: Failed to spawn Electron 40.8.0 probe: spawnSync npx.cmd EINVAL`
+  - This is consistent with Windows pseudo environment variables (keys like `=C:`) causing `spawnSync` failure when `env` is passed explicitly.
+- Current local fix:
+  - `scripts/verify-electron-target.js`
+    - added `getSpawnEnv()` to filter pseudo env keys on Windows before spawning `npx.cmd`.
+  - `scripts/electron-smoke.js`
+    - added matching `getSpawnEnv()` and switched both Electron spawn calls to use sanitized env.
+  - local validation:
+    - `node --check scripts/verify-electron-target.js`
+    - `node --check scripts/electron-smoke.js`

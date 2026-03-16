@@ -505,3 +505,19 @@ This file records the CI/workflow fix iterations so another agent can continue f
 - `scripts/clean-tesseract.js`
 - `leptonica/CMakeLists.txt`
 - `leptonica/src/CMakeLists.txt`
+
+### Iteration AP (in progress)
+- GitHub run checked: `23134345761` (`Run CI`) after commit `fd73349`.
+- Outcome:
+  - Windows-only CI run failed early at step `Verify required Electron target compatibility`.
+  - Error:
+    - `Failed to spawn Electron 40.8.0 probe: spawnSync npx.cmd EINVAL`
+- Root cause hypothesis:
+  - On Windows runners, inherited pseudo env keys (for example names starting with `=` such as `=C:`) can make `spawnSync` fail with `EINVAL` when a custom `env` object is passed.
+- Current local fix:
+  - `scripts/verify-electron-target.js`
+    - added `getSpawnEnv()` helper to filter pseudo env keys on Windows.
+    - switched Electron probe spawn to use sanitized env.
+  - `scripts/electron-smoke.js`
+    - added matching `getSpawnEnv()` helper.
+    - switched both Electron `npx.cmd` spawn calls to sanitized env.

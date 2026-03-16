@@ -13,6 +13,26 @@ const AppRoot = path.join(TempRoot, 'resources', 'app')
 const NpxExecutable = process.platform === 'win32' ? 'npx.cmd' : 'npx'
 
 /**
+ * Filter out Windows pseudo env keys (for example "=C:") that can make spawnSync fail with EINVAL.
+ * @returns {NodeJS.ProcessEnv}
+ */
+function getSpawnEnv() {
+	if (process.platform !== 'win32') {
+		return {...process.env}
+	}
+
+	/** @type {NodeJS.ProcessEnv} */
+	const env = {}
+	for (const key of Object.keys(process.env)) {
+		if (key.startsWith('=')) {
+			continue
+		}
+		env[key] = process.env[key]
+	}
+	return env
+}
+
+/**
  * @param {string} command
  * @param {string[]} args
  * @param {import('child_process').SpawnSyncOptions} options
@@ -100,7 +120,7 @@ function runDirectElectronSmoke() {
 		['-y', `electron@${ElectronVersion}`, '-e', smokeCode],
 		{
 			cwd: RepoRoot,
-			env: process.env
+			env: getSpawnEnv()
 		}
 	)
 
@@ -161,7 +181,7 @@ function runBundledLayoutSmoke() {
 		['-y', `electron@${ElectronVersion}`, '.'],
 		{
 			cwd: AppRoot,
-			env: process.env
+			env: getSpawnEnv()
 		}
 	)
 
