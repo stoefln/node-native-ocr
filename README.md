@@ -91,6 +91,25 @@ Rejects if it fails to read image data from file or buffer.
 
 Rejects if tesseract fails to initialize
 
+## Windows CLI binary override (temporary stabilization)
+
+On Windows, OCR currently uses the CLI backend by default. If your environment has issues with the bundled OCR binary, you can point the runtime to a different `tesseract.exe`:
+
+```sh
+set NODE_NATIVE_OCR_TESSERACT_BINARY=C:\\Program Files\\Tesseract-OCR\\tesseract.exe
+```
+
+Or set it per call:
+
+```js
+recognize(buffer, {
+  lang: "eng",
+  tesseractBinary: "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+});
+```
+
+This is intended as a stability workaround while bundled Windows OCR artifacts are being hardened.
+
 ## Example of Using with Electron
 
 ```js

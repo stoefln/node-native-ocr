@@ -758,6 +758,40 @@ This file records the CI/workflow fix iterations so another agent can continue f
 - Expected value:
   - if external passes while bundled fails, root cause is likely in our bundled Windows OCR binary/deps.
 
+### Iteration BF (completed)
+- GitHub run checked: `23140798089` (`Run CI`) after commit `08012ba`.
+- Outcome:
+  - workflow passed completely.
+  - selected test binary source was `external`:
+    - `C:\Program Files\Tesseract-OCR\tesseract.exe`.
+  - self-check produced non-empty OCR output (`Self-check output bytes: 63`).
+  - Electron smoke passed:
+    - `Electron main-process smoke test passed`
+    - `Electron bundled-layout smoke test passed`.
+- Conclusion:
+  - current blocking instability is strongly associated with the bundled Windows tesseract build path, not with Electron smoke harness itself.
+
+## Current Temporary Windows Stability Plan
+- Keep Windows backend on CLI path (native Windows addon path stays disabled-by-default due earlier native crash history).
+- In CI, prefer external Windows tesseract binary for test execution using:
+  - `WINDOWS_TEST_TESSERACT_EXE`
+  - `NODE_NATIVE_OCR_TESSERACT_BINARY`.
+- Treat this as a temporary stabilization path, not a final fix for bundled artifacts.
+
+## Future Fix Plan (Bundled Windows OCR)
+- 1. Reproduce bundled-binary crash in dedicated non-blocking CI lane:
+  - force `WINDOWS_TEST_TESSERACT_SOURCE=bundled` and keep run artifacts.
+- 2. Add crash forensics artifacts for bundled path:
+  - capture Windows Error Reporting dumps/event details and OCR stdout/stderr/output files.
+- 3. Validate dependency closure for bundled binaries:
+  - verify all DLL dependencies and runtime redistributables for `tesseract.exe` and linked libs.
+- 4. Compare bundled build flags against known-good upstream Windows distribution:
+  - CRT mode, compiler version, OpenMP, optimization, SIMD toggles.
+- 5. Rebuild bundled Windows OCR stack from a minimal, known-good preset:
+  - start with conservative flags, then re-enable features incrementally.
+- 6. Keep external-binary override support permanently:
+  - preserve emergency fallback lever while bundled path is hardened.
+
 ## Untried Ideas (Next Experiments)
 
 ### 1. Reintroduce native Windows path behind a feature flag
