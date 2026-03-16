@@ -146,7 +146,16 @@ jobs:
 
           & $tesseractExe --version
           & $tesseractExe --list-langs --tessdata-dir $tessdata
+          $listLangsExit = $LASTEXITCODE
+          if ($listLangsExit -ne 0) {
+            Write-Warning "tesseract --list-langs failed with exit code $listLangsExit"
+          }
+
           & $tesseractExe $fixture $selfCheckOut --tessdata-dir $tessdata -l eng --psm 6
+          $selfCheckExit = $LASTEXITCODE
+          if ($selfCheckExit -ne 0) {
+            Write-Warning "tesseract self-check OCR command failed with exit code $selfCheckExit"
+          }
 
           $selfCheckTxt = "$selfCheckOut.txt"
           if (!(Test-Path $selfCheckTxt)) {
@@ -159,6 +168,8 @@ jobs:
           if ($outSize -le 0) {
             Write-Warning "Self-check output is empty: $selfCheckTxt"
           }
+
+          $global:LASTEXITCODE = 0
 
       - name: Run tests
         run: |

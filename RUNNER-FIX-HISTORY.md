@@ -683,6 +683,18 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - made `Tesseract self-check` warning-only (non-blocking) when output is missing/empty.
     - objective is to continue into `Run tests` and `Run Electron smoke tests` to capture richer JS-layer telemetry from `src/index.js` debug payload.
 
+### Iteration BA (in progress)
+- GitHub run checked: `23138535059` (`Run CI`) after commit `d5d5ada`.
+- Outcome:
+  - run still stops at `Tesseract self-check`.
+- Root cause:
+  - PowerShell propagated non-zero native command exit code (`$LASTEXITCODE`) from `tesseract.exe` even without explicit `throw`.
+- Current local fix:
+  - `.github/workflows/ci.yaml`
+    - capture `--list-langs` and OCR command exit codes explicitly.
+    - convert non-zero codes to warnings for diagnostics.
+    - force `$LASTEXITCODE = 0` at end of self-check step so pipeline proceeds to `Run tests`.
+
 ## Untried Ideas (Next Experiments)
 
 ### 1. Reintroduce native Windows path behind a feature flag
