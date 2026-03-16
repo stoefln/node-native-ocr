@@ -94,6 +94,33 @@ jobs:
           "$env:GITHUB_WORKSPACE\\libjpeg\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$env:GITHUB_WORKSPACE\\zlib\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Configure Windows tesseract binary for tests
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install tesseract --no-progress -y
+
+          $bundled = "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin\tesseract.exe"
+          $externalCandidates = @(
+            "$env:ProgramFiles\Tesseract-OCR\tesseract.exe",
+            "$env:ProgramFiles(x86)\Tesseract-OCR\tesseract.exe"
+          )
+
+          $selected = $bundled
+          $source = "bundled"
+          foreach ($candidate in $externalCandidates) {
+            if (Test-Path $candidate) {
+              $selected = $candidate
+              $source = "external"
+              break
+            }
+          }
+
+          Write-Host "Selected Windows test tesseract source: $source"
+          Write-Host "Selected Windows test tesseract executable: $selected"
+          "WINDOWS_TEST_TESSERACT_SOURCE=$source" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WINDOWS_TEST_TESSERACT_EXE=$selected" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Set short Windows temp path
         if: runner.os == 'Windows'
         shell: pwsh
@@ -138,11 +165,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $tesseractExe = "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin\tesseract.exe"
+          $tesseractExe = "$env:WINDOWS_TEST_TESSERACT_EXE"
           $fixture = "$env:GITHUB_WORKSPACE\test\fixtures\test.jpg"
           $tessdata = "$env:GITHUB_WORKSPACE\tessdata"
           $selfCheckDir = Join-Path $env:RUNNER_TEMP "tesseract-selfcheck"
           $selfCheckOut = Join-Path $selfCheckDir "ocr-selfcheck"
+
+          Write-Host "Self-check tesseract source: $env:WINDOWS_TEST_TESSERACT_SOURCE"
+          Write-Host "Self-check tesseract executable: $tesseractExe"
 
           New-Item -ItemType Directory -Path $selfCheckDir -Force | Out-Null
 
@@ -179,5 +209,7 @@ jobs:
 
       - name: Run Electron smoke tests
         if: runner.os == 'Windows'
+        env:
+          NODE_NATIVE_OCR_TESSERACT_BINARY: ${{ env.WINDOWS_TEST_TESSERACT_EXE }}
         run: |
           npm run test-electron -- "${{ env.REQUIRED_ELECTRON_VERSION }}"

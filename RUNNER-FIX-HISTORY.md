@@ -729,6 +729,35 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `scripts/electron-smoke.js`
     - remove `psm: 6` from direct/bundled strict probes while keeping `requireNonEmpty: true`.
 
+### Iteration BD (in progress)
+- GitHub run checked: `23139822766` (`Run CI`) after commit `3125e62`.
+- Outcome:
+  - removing `--psm 6` did not change behavior.
+  - self-check still reports OCR exit `-1073740791` with empty output file.
+  - Electron smoke still fails on direct probe with:
+    - `exitCode: 3221226505` (`0xC0000409`)
+    - `outputSize: 0`
+    - banner-only stderr.
+- Conclusion:
+  - crash appears independent of the `psm` override.
+  - keep Windows default on CLI path. Native default is not a valid rollback target because this migration started from native-module crashes on Windows.
+  - next step should pivot from CLI-argument tweaks to CLI-runtime/electron-environment experiments (without changing backend default).
+
+### Iteration BE (in progress)
+- Goal:
+  - test whether the crash is tied to our bundled Windows `tesseract.exe` build.
+- Current local fix:
+  - `src/index.js`
+    - added `tesseractBinary` option.
+    - added env override support via `NODE_NATIVE_OCR_TESSERACT_BINARY`.
+  - `.github/workflows/ci.yaml`
+    - install external Windows tesseract via Chocolatey.
+    - resolve and export `WINDOWS_TEST_TESSERACT_EXE` + `WINDOWS_TEST_TESSERACT_SOURCE` (prefer external, fallback bundled).
+    - run self-check against selected test binary and print source/path.
+    - run Electron smoke with `NODE_NATIVE_OCR_TESSERACT_BINARY` pointing to selected binary.
+- Expected value:
+  - if external passes while bundled fails, root cause is likely in our bundled Windows OCR binary/deps.
+
 ## Untried Ideas (Next Experiments)
 
 ### 1. Reintroduce native Windows path behind a feature flag

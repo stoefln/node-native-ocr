@@ -22,6 +22,7 @@ const DEFAULT_TESSERACT_BINARY = path.resolve(
  * @typedef {Object} RecognizeOptions
  * @property {string|string[]} [lang]
  * @property {string} [tessdataPath]
+ * @property {string} [tesseractBinary]
  * @property {'txt'|'tsv'} [format]
  * @property {number} [psm]
  * @property {boolean} [requireNonEmpty]
@@ -36,6 +37,9 @@ const handleOptions = (options = {}) => {
   }
   if (!options.format) {
     options.format = 'txt'
+  }
+  if (!options.tesseractBinary && process.env.NODE_NATIVE_OCR_TESSERACT_BINARY) {
+    options.tesseractBinary = process.env.NODE_NATIVE_OCR_TESSERACT_BINARY
   }
   if (typeof options.requireNonEmpty !== 'boolean') {
     options.requireNonEmpty = false
@@ -55,7 +59,7 @@ const runTesseractCli = (buffer, options, callback) => {
   const outputFileBase = `${tempFileName}-ocr`
   const inputPath = path.join(tempDir, inputFileName)
   const outputBasePath = path.join(tempDir, outputFileBase)
-  const executable = fs.existsSync(DEFAULT_TESSERACT_BINARY) ? DEFAULT_TESSERACT_BINARY : 'tesseract'
+  const executable = options.tesseractBinary || (fs.existsSync(DEFAULT_TESSERACT_BINARY) ? DEFAULT_TESSERACT_BINARY : 'tesseract')
 
   fs.writeFileSync(inputPath, buffer)
 
