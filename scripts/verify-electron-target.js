@@ -5,7 +5,7 @@ const path = require('path')
 
 const RequiredElectronVersion = process.argv[2] || '40.8.0'
 const PackageRootPath = path.resolve(__dirname, '..')
-const NpxExecutable = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+const NpxExecutable = 'npx'
 
 /**
  * Filter out Windows pseudo env keys (for example "=C:") that can make spawnSync fail with EINVAL.
@@ -40,6 +40,7 @@ function getElectronRuntimeVersions(version) {
 
   const result = spawnSync(NpxExecutable, ['-y', `electron@${version}`, '-e', probeCode], {
     cwd: PackageRootPath,
+    shell: process.platform === 'win32',
     env: {
       ...getSpawnEnv(),
       ELECTRON_RUN_AS_NODE: '1'

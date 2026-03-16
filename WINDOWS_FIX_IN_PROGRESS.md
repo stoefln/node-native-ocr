@@ -102,7 +102,7 @@ gh run view <run-id> --log-failed
 - Run observed: `23134345761` (`Run CI`)
 - Outcome: failed at `Verify required Electron target compatibility`.
 
-### Iteration X (current, in progress)
+### Iteration X (completed)
 - Failing run: `23134345761`
 - First failing step:
   - `Verify required Electron target compatibility`
@@ -114,6 +114,24 @@ gh run view <run-id> --log-failed
     - added `getSpawnEnv()` to filter pseudo env keys on Windows before spawning `npx.cmd`.
   - `scripts/electron-smoke.js`
     - added matching `getSpawnEnv()` and switched both Electron spawn calls to use sanitized env.
+  - local validation:
+    - `node --check scripts/verify-electron-target.js`
+    - `node --check scripts/electron-smoke.js`
+
+### Iteration Y (current, in progress)
+- Failing run: `23134690070`
+- First failing step:
+  - `Verify required Electron target compatibility`
+- Root cause from log:
+  - Same failure persisted: `spawnSync npx.cmd EINVAL`.
+  - Stronger hypothesis: Windows command shim execution (`.cmd`) via `spawnSync` without shell is the blocker.
+- Current local fix:
+  - `scripts/verify-electron-target.js`
+    - switched executable from `npx.cmd` to `npx`.
+    - enabled `shell: process.platform === 'win32'` for spawn call.
+  - `scripts/electron-smoke.js`
+    - switched executable from `npx.cmd` to `npx`.
+    - enabled `shell: process.platform === 'win32'` for both Electron spawn calls.
   - local validation:
     - `node --check scripts/verify-electron-target.js`
     - `node --check scripts/electron-smoke.js`

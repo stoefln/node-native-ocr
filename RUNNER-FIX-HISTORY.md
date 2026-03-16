@@ -521,3 +521,17 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - `scripts/electron-smoke.js`
     - added matching `getSpawnEnv()` helper.
     - switched both Electron `npx.cmd` spawn calls to sanitized env.
+
+### Iteration AQ (in progress)
+- GitHub run checked: `23134690070` (`Run CI`) after commit `8a77218`.
+- Outcome:
+  - Windows-only CI still fails at `Verify required Electron target compatibility`.
+  - Error remains: `spawnSync npx.cmd EINVAL`.
+- Root cause refinement:
+  - Failure is likely from invoking Windows command shims (`.cmd`) directly through `spawnSync`.
+- Current local fix:
+  - `scripts/verify-electron-target.js`
+    - use `npx` executable name.
+    - set `shell: process.platform === 'win32'` for spawn on Windows.
+  - `scripts/electron-smoke.js`
+    - same `npx` + `shell` change for both Electron smoke spawn calls.

@@ -10,7 +10,7 @@ const RepoRoot = path.resolve(__dirname, '..')
 const FixturePath = path.join(RepoRoot, 'test', 'fixtures', 'test.jpg')
 const TempRoot = path.join(RepoRoot, 'temp', 'electron-bundle-smoke')
 const AppRoot = path.join(TempRoot, 'resources', 'app')
-const NpxExecutable = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+const NpxExecutable = 'npx'
 
 /**
  * Filter out Windows pseudo env keys (for example "=C:") that can make spawnSync fail with EINVAL.
@@ -120,6 +120,7 @@ function runDirectElectronSmoke() {
 		['-y', `electron@${ElectronVersion}`, '-e', smokeCode],
 		{
 			cwd: RepoRoot,
+			shell: process.platform === 'win32',
 			env: getSpawnEnv()
 		}
 	)
@@ -181,6 +182,7 @@ function runBundledLayoutSmoke() {
 		['-y', `electron@${ElectronVersion}`, '.'],
 		{
 			cwd: AppRoot,
+			shell: process.platform === 'win32',
 			env: getSpawnEnv()
 		}
 	)
