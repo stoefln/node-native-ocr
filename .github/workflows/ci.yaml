@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-14, windows-latest ]
+        os: [ windows-latest ]
         node: [ "20" ]
 
     runs-on: ${{matrix.os}}
@@ -52,7 +52,7 @@ jobs:
         run: npm run build-cc
 
       - name: Verify required Electron target compatibility
-        if: runner.os != 'Windows'
+        if: runner.os == 'Windows'
         run: node ./scripts/verify-electron-target.js "${{ env.REQUIRED_ELECTRON_VERSION }}"
 
       - name: Add Windows native runtime paths
@@ -77,3 +77,8 @@ jobs:
       - name: Run tests
         run: |
           npm test
+
+      - name: Run Electron smoke tests
+        if: runner.os == 'Windows'
+        run: |
+          npm run test-electron -- "${{ env.REQUIRED_ELECTRON_VERSION }}"

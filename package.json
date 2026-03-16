@@ -50,6 +50,7 @@
     "rebuild-and-test": "rm -f prebuilds/*; npm run create-prebuild; npm run test",
     "// test": "lldb -- /usr/local/bin/node ./node_modules/.bin/ava --verbose --timeout=10s",
     "test": "npm run test-js",
+    "test-electron": "node ./scripts/electron-smoke.js",
     "test-js": "run-script-os",
     "test-js:linux": "nyc ava --verbose --timeout=10s",
     "test-js:windows": "node scripts/windows-smoke.js",
