@@ -695,6 +695,22 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - convert non-zero codes to warnings for diagnostics.
     - force `$LASTEXITCODE = 0` at end of self-check step so pipeline proceeds to `Run tests`.
 
+### Iteration BB (in progress)
+- GitHub run checked: `23138901960` (`Run CI`) after commit `37d13ea`.
+- Outcome:
+  - `Run tests` now passes.
+  - failure moved to `Run Electron smoke tests` (direct probe).
+  - raw self-check and Electron both show same low-level behavior:
+    - OCR command exits with `-1073740791`.
+    - output `.txt` file exists but has `0` bytes.
+    - stderr only prints tesseract banner line.
+- Current local fix:
+  - `.github/workflows/ci.yaml`
+    - set `OMP_THREAD_LIMIT=1` and `OMP_NUM_THREADS=1` globally for the job.
+  - `src/index.js`
+    - enforce the same thread limits in CLI subprocess env.
+    - include `exitCode` and `signal` in structured CLI failure diagnostics.
+
 ## Untried Ideas (Next Experiments)
 
 ### 1. Reintroduce native Windows path behind a feature flag

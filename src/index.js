@@ -74,7 +74,9 @@ const runTesseractCli = (buffer, options, callback) => {
       cwd: tempDir,
       env: {
         ...process.env,
-        TESSDATA_PREFIX: options.tessdataPath
+        TESSDATA_PREFIX: options.tessdataPath,
+        OMP_THREAD_LIMIT: '1',
+        OMP_NUM_THREADS: '1'
       },
       windowsHide: true,
       maxBuffer: 10 * 1024 * 1024
@@ -124,7 +126,9 @@ const runTesseractCli = (buffer, options, callback) => {
           outputSize,
           stdout,
           stderr,
-          processError: error.message
+          processError: error.message,
+          exitCode: error.code,
+          signal: error.signal
         },
         null,
         2
