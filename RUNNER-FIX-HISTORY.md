@@ -711,6 +711,24 @@ This file records the CI/workflow fix iterations so another agent can continue f
     - enforce the same thread limits in CLI subprocess env.
     - include `exitCode` and `signal` in structured CLI failure diagnostics.
 
+### Iteration BC (in progress)
+- GitHub run checked: `23139370017` (`Run CI`) after commit `a0c55f1`.
+- Outcome:
+  - thread-limit experiment did not change failure mode.
+  - self-check still reports OCR command exit `-1073740791` and empty output.
+  - Electron smoke still fails with CLI crash signature:
+    - `exitCode: 3221226505` (`0xC0000409`)
+    - `outputSize: 0`
+    - stderr banner only.
+- New hypothesis:
+  - explicit `--psm 6` is the destabilizing factor in this Windows CI build profile.
+  - baseline `npm test` path (which does not force `psm`) still passes strict expected text assertions.
+- Current local fix:
+  - `.github/workflows/ci.yaml`
+    - remove `--psm 6` from tesseract self-check OCR command.
+  - `scripts/electron-smoke.js`
+    - remove `psm: 6` from direct/bundled strict probes while keeping `requireNonEmpty: true`.
+
 ## Untried Ideas (Next Experiments)
 
 ### 1. Reintroduce native Windows path behind a feature flag

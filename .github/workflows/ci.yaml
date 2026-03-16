@@ -153,7 +153,7 @@ jobs:
             Write-Warning "tesseract --list-langs failed with exit code $listLangsExit"
           }
 
-          & $tesseractExe $fixture $selfCheckOut --tessdata-dir $tessdata -l eng --psm 6
+          & $tesseractExe $fixture $selfCheckOut --tessdata-dir $tessdata -l eng
           $selfCheckExit = $LASTEXITCODE
           if ($selfCheckExit -ne 0) {
             Write-Warning "tesseract self-check OCR command failed with exit code $selfCheckExit"
