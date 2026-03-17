@@ -84,36 +84,21 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          choco install tesseract --no-progress -y
+
           $runtimeDir = "$env:GITHUB_WORKSPACE\runtime\win32-x64"
           New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
+          Get-ChildItem -Path $runtimeDir -File | Remove-Item -Force
 
-          $sourceDirs = @(
-            "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\leptonica\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\libtiff\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\libpng\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\libjpeg\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\zlib\build\bin\bin"
-          )
-
-          $bundledExe = Join-Path $sourceDirs[0] 'tesseract.exe'
-          if (!(Test-Path $bundledExe)) {
-            throw "Missing bundled tesseract executable: $bundledExe"
+          $externalDir = "$env:ProgramFiles\Tesseract-OCR"
+          $externalExe = Join-Path $externalDir 'tesseract.exe'
+          if (!(Test-Path $externalExe)) {
+            throw "Known-good tesseract executable not found: $externalExe"
           }
 
-          Copy-Item $bundledExe -Destination (Join-Path $runtimeDir 'tesseract.exe') -Force
-
-          $copiedDlls = @{}
-          foreach ($dir in $sourceDirs) {
-            if (!(Test-Path $dir)) {
-              continue
-            }
-            Get-ChildItem -Path $dir -Filter *.dll | ForEach-Object {
-              if (-not $copiedDlls.ContainsKey($_.Name)) {
-                Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
-                $copiedDlls[$_.Name] = $true
-              }
-            }
+          Copy-Item $externalExe -Destination (Join-Path $runtimeDir 'tesseract.exe') -Force
+          Get-ChildItem -Path $externalDir -Filter *.dll | ForEach-Object {
+            Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
           }
 
           Write-Host "Bundled runtime files:"

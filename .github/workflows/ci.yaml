@@ -94,19 +94,34 @@ jobs:
           "$env:GITHUB_WORKSPACE\\libjpeg\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$env:GITHUB_WORKSPACE\\zlib\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Configure bundled Windows tesseract binary for tests
+      - name: Provision bundled Windows OCR runtime for tests
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $bundled = "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin\tesseract.exe"
-          if (!(Test-Path $bundled)) {
-            throw "Bundled tesseract executable not found: $bundled"
+          choco install tesseract --no-progress -y
+
+          $runtimeDir = "$env:GITHUB_WORKSPACE\runtime\win32-x64"
+          New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
+          Get-ChildItem -Path $runtimeDir -File | Remove-Item -Force
+
+          $externalDir = "$env:ProgramFiles\Tesseract-OCR"
+          $externalExe = Join-Path $externalDir 'tesseract.exe'
+          if (!(Test-Path $externalExe)) {
+            throw "Known-good tesseract executable not found: $externalExe"
           }
 
-          Write-Host "Selected Windows test tesseract source: bundled"
-          Write-Host "Selected Windows test tesseract executable: $bundled"
-          "WINDOWS_TEST_TESSERACT_SOURCE=bundled" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "WINDOWS_TEST_TESSERACT_EXE=$bundled" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Copy-Item $externalExe -Destination (Join-Path $runtimeDir 'tesseract.exe') -Force
+          Get-ChildItem -Path $externalDir -Filter *.dll | ForEach-Object {
+            Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
+          }
+
+          "$runtimeDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          $bundledExe = Join-Path $runtimeDir 'tesseract.exe'
+          Write-Host "Selected Windows test tesseract source: runtime-win32-x64"
+          Write-Host "Selected Windows test tesseract executable: $bundledExe"
+          "WINDOWS_TEST_TESSERACT_SOURCE=runtime-win32-x64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WINDOWS_TEST_TESSERACT_EXE=$bundledExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Set short Windows temp path
         if: runner.os == 'Windows'
