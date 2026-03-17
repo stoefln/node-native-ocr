@@ -184,7 +184,7 @@ jobs:
           TARBALL=$(node -e "const pkg=require('./package.json'); const tarName=(pkg.name + '-' + pkg.version).replace('@','').replace('/','-') + '.tgz'; process.stdout.write(tarName);")
           npm pack --quiet > /dev/null
           test -f "$TARBALL"
-          node -e "const {execFileSync}=require('child_process'); const tarball=process.env.TARBALL; const listing=execFileSync('tar',['-tzf',tarball],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean); const hasExe=listing.includes('package/runtime/win32-x64/tesseract.exe'); const hasDll=listing.some(name => /^package\/runtime\/win32-x64\/.*\.dll$/i.test(name)); if(!hasExe){throw new Error('Packed tarball missing runtime/win32-x64/tesseract.exe');} if(!hasDll){throw new Error('Packed tarball missing runtime/win32-x64/*.dll');} console.log('Verified runtime entries in packed tarball.');"
+          node -e "const {execFileSync}=require('child_process'); const tarball=process.argv[1]; const listing=execFileSync('tar',['-tzf',tarball],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean); const hasExe=listing.includes('package/runtime/win32-x64/tesseract.exe'); const hasDll=listing.some(name => /^package\/runtime\/win32-x64\/.*\.dll$/i.test(name)); if(!hasExe){throw new Error('Packed tarball missing runtime/win32-x64/tesseract.exe');} if(!hasDll){throw new Error('Packed tarball missing runtime/win32-x64/*.dll');} console.log('Verified runtime entries in packed tarball.');" "$TARBALL"
 
       - name: Pack release tarball
         run: npm pack
