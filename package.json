@@ -94,6 +94,7 @@
     "src/",
     "dist/",
     "tessdata/",
+    "runtime/",
     "prebuilds/",
     "LICENSE-MIT",
     "package.json",

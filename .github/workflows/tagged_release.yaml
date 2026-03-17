@@ -80,6 +80,45 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const path=require('path'); const dir=path.join('prebuilds','${{ matrix.target }}'); if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir).filter(name => name.endsWith('.node')); if(files.length===0) throw new Error('No .node prebuild found in '+dir); console.log('Found prebuilds:', files.join(', '));"
 
+      - name: Prepare bundled Windows OCR runtime artifact
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $runtimeDir = "$env:GITHUB_WORKSPACE\runtime\win32-x64"
+          New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
+
+          $sourceDirs = @(
+            "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\leptonica\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libtiff\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libpng\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libjpeg\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\zlib\build\bin\bin"
+          )
+
+          $bundledExe = Join-Path $sourceDirs[0] 'tesseract.exe'
+          if (!(Test-Path $bundledExe)) {
+            throw "Missing bundled tesseract executable: $bundledExe"
+          }
+
+          Copy-Item $bundledExe -Destination (Join-Path $runtimeDir 'tesseract.exe') -Force
+
+          $copiedDlls = @{}
+          foreach ($dir in $sourceDirs) {
+            if (!(Test-Path $dir)) {
+              continue
+            }
+            Get-ChildItem -Path $dir -Filter *.dll | ForEach-Object {
+              if (-not $copiedDlls.ContainsKey($_.Name)) {
+                Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
+                $copiedDlls[$_.Name] = $true
+              }
+            }
+          }
+
+          Write-Host "Bundled runtime files:"
+          Get-ChildItem -Path $runtimeDir | Select-Object Name,Length
+
       - name: Verify required Electron target compatibility
         if: runner.os != 'Windows'
         run: node ./scripts/verify-electron-target.js "${{ env.REQUIRED_ELECTRON_VERSION }}"
@@ -89,6 +128,14 @@ jobs:
         with:
           name: prebuilds-${{ matrix.target }}
           path: prebuilds/
+          retention-days: 1
+
+      - name: Upload bundled Windows OCR runtime artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-win32-x64
+          path: runtime/win32-x64/
           retention-days: 1
 
   publish:
@@ -114,12 +161,22 @@ jobs:
           pattern: prebuilds-*
           merge-multiple: true
 
+      - name: Download bundled Windows OCR runtime artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: runtime-win32-x64
+          path: runtime/win32-x64
+
       - name: Merge prebuilds into package
         run: |
           mkdir -p prebuilds
           cp -r prebuilds-all/* prebuilds/
           ls -la prebuilds/
           find prebuilds -name '*.node' -type f
+
+      - name: Verify bundled Windows OCR runtime files
+        run: |
+          node -e "const fs=require('fs'); const path=require('path'); const runtimeDir=path.join('runtime','win32-x64'); if(!fs.existsSync(runtimeDir)) throw new Error('Missing runtime dir: '+runtimeDir); const files=fs.readdirSync(runtimeDir); if(!files.includes('tesseract.exe')) throw new Error('Missing runtime/win32-x64/tesseract.exe'); const dllCount=files.filter(name => name.toLowerCase().endsWith('.dll')).length; if(dllCount===0) throw new Error('No DLL files found in runtime/win32-x64'); console.log('runtime files:', files.join(', '));"
 
       - name: Verify all release prebuild targets are present
         run: |
@@ -136,6 +193,14 @@ jobs:
 
       - name: Show package contents
         run: npm pack --dry-run
+
+      - name: Verify packed tarball contains bundled Windows OCR runtime
+        run: |
+          TARBALL=$(node -e "const pkg=require('./package.json'); const tarName=(pkg.name + '-' + pkg.version).replace('@','').replace('/','-') + '.tgz'; process.stdout.write(tarName);")
+          npm pack --quiet > /dev/null
+          test -f "$TARBALL"
+          tar -tzf "$TARBALL" | grep -q '^package/runtime/win32-x64/tesseract.exe$'
+          tar -tzf "$TARBALL" | grep -q '^package/runtime/win32-x64/.*\\.dll$'
 
       - name: Pack release tarball
         run: npm pack

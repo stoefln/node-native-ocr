@@ -11,6 +11,12 @@ const DEFAULT_LANG = 'eng'
 const LANG_DELIMITER = '+'
 const DEFAULT_TESSERACT_BINARY = path.resolve(
   packageRootPath,
+  'runtime',
+  'win32-x64',
+  'tesseract.exe'
+)
+const LEGACY_TESSERACT_BINARY = path.resolve(
+  packageRootPath,
   'tesseract',
   'build',
   'bin',
@@ -59,7 +65,19 @@ const runTesseractCli = (buffer, options, callback) => {
   const outputFileBase = `${tempFileName}-ocr`
   const inputPath = path.join(tempDir, inputFileName)
   const outputBasePath = path.join(tempDir, outputFileBase)
-  const executable = options.tesseractBinary || (fs.existsSync(DEFAULT_TESSERACT_BINARY) ? DEFAULT_TESSERACT_BINARY : 'tesseract')
+  const executableCandidates = options.tesseractBinary
+    ? [options.tesseractBinary]
+    : [DEFAULT_TESSERACT_BINARY, LEGACY_TESSERACT_BINARY]
+  const executable = executableCandidates.find(candidate => fs.existsSync(candidate))
+
+  if (!executable) {
+    const missingBinaryError = new Error(
+      `No bundled tesseract executable found. Checked: ${executableCandidates.join(', ')}`
+    )
+    missingBinaryError.code = 'ERR_INIT_TESSER'
+    callback(missingBinaryError)
+    return
+  }
 
   fs.writeFileSync(inputPath, buffer)
 

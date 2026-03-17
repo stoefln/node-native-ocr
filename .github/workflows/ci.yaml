@@ -94,32 +94,19 @@ jobs:
           "$env:GITHUB_WORKSPACE\\libjpeg\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$env:GITHUB_WORKSPACE\\zlib\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Configure Windows tesseract binary for tests
+      - name: Configure bundled Windows tesseract binary for tests
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install tesseract --no-progress -y
-
           $bundled = "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin\tesseract.exe"
-          $externalCandidates = @(
-            "$env:ProgramFiles\Tesseract-OCR\tesseract.exe",
-            "$env:ProgramFiles(x86)\Tesseract-OCR\tesseract.exe"
-          )
-
-          $selected = $bundled
-          $source = "bundled"
-          foreach ($candidate in $externalCandidates) {
-            if (Test-Path $candidate) {
-              $selected = $candidate
-              $source = "external"
-              break
-            }
+          if (!(Test-Path $bundled)) {
+            throw "Bundled tesseract executable not found: $bundled"
           }
 
-          Write-Host "Selected Windows test tesseract source: $source"
-          Write-Host "Selected Windows test tesseract executable: $selected"
-          "WINDOWS_TEST_TESSERACT_SOURCE=$source" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "WINDOWS_TEST_TESSERACT_EXE=$selected" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Selected Windows test tesseract source: bundled"
+          Write-Host "Selected Windows test tesseract executable: $bundled"
+          "WINDOWS_TEST_TESSERACT_SOURCE=bundled" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WINDOWS_TEST_TESSERACT_EXE=$bundled" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Set short Windows temp path
         if: runner.os == 'Windows'
@@ -209,7 +196,7 @@ jobs:
 
       - name: Run Electron smoke tests
         if: runner.os == 'Windows'
-        env:
-          NODE_NATIVE_OCR_TESSERACT_BINARY: ${{ env.WINDOWS_TEST_TESSERACT_EXE }}
+        shell: pwsh
         run: |
+          $env:NODE_NATIVE_OCR_TESSERACT_BINARY = $env:WINDOWS_TEST_TESSERACT_EXE
           npm run test-electron -- "${{ env.REQUIRED_ELECTRON_VERSION }}"
