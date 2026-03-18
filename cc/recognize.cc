@@ -81,10 +81,62 @@ const char *DetectImageExtension(const uint8_t *buffer, size_t length)
   return ".img";
 }
 
+Pix *ReadImageFromMemoryByType(const uint8_t *buffer, size_t length)
+{
+  const char *extension = DetectImageExtension(buffer, length);
+
+  if (std::strcmp(extension, ".jpg") == 0)
+  {
+    NativeDebug("native: ReadImageFromBuffer pixReadMemJpeg");
+    return pixReadMemJpeg(buffer, length, 0, 1, NULL, 0);
+  }
+
+  if (std::strcmp(extension, ".png") == 0)
+  {
+    NativeDebug("native: ReadImageFromBuffer pixReadMemPng");
+    return pixReadMemPng(buffer, length);
+  }
+
+  if (std::strcmp(extension, ".tif") == 0)
+  {
+    NativeDebug("native: ReadImageFromBuffer pixReadMemTiff");
+    return pixReadMemTiff(buffer, length, 0);
+  }
+
+  if (std::strcmp(extension, ".bmp") == 0)
+  {
+    NativeDebug("native: ReadImageFromBuffer pixReadMemBmp");
+    return pixReadMemBmp(buffer, length);
+  }
+
+  if (std::strcmp(extension, ".gif") == 0)
+  {
+    NativeDebug("native: ReadImageFromBuffer pixReadMemGif");
+    return pixReadMemGif(buffer, length);
+  }
+
+  if (std::strcmp(extension, ".webp") == 0)
+  {
+    NativeDebug("native: ReadImageFromBuffer pixReadMemWebP");
+    return pixReadMemWebP(buffer, length);
+  }
+
+  return nullptr;
+}
+
 Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
 {
   NativeDebug("native: ReadImageFromBuffer enter");
 #ifdef _WIN32
+  Pix *image = ReadImageFromMemoryByType(buffer, length);
+  if (image != nullptr)
+  {
+    NativeDebug("native: ReadImageFromBuffer memory decoder ok");
+    return image;
+  }
+
+  NativeDebug("native: ReadImageFromBuffer memory decoder unavailable; fallback to temp file");
+
   char tempPath[MAX_PATH];
   if (GetTempPathA(MAX_PATH, tempPath) > 0)
   {
@@ -100,7 +152,7 @@ Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
         tempStream.write(reinterpret_cast<const char *>(buffer), static_cast<std::streamsize>(length));
         tempStream.close();
         NativeDebug("native: ReadImageFromBuffer pixRead temp file");
-        Pix *image = pixRead(imagePath.c_str());
+        image = pixRead(imagePath.c_str());
         DeleteFileA(imagePath.c_str());
         NativeDebug(image == nullptr ? "native: ReadImageFromBuffer temp pixRead failed" : "native: ReadImageFromBuffer temp pixRead ok");
         return image;
