@@ -1,7 +1,8 @@
 const test = require('ava').test
 
 import {
-  recognize
+  recognize,
+  __internal
 } from '../src'
 import path from 'path'
 import fs from 'fs-extra'
@@ -16,6 +17,10 @@ const test_read_error = (t, e, fn) => {
   t.is(e.code, 'ERR_READ_IMAGE', 'error code not match')
   t.is(e.message, 'Fails to read image.', 'error message not match')
 }
+
+test('uses native backend', t => {
+  t.is(__internal.getBackendName(), 'native')
+})
 
 test('recognize', async t => {
   //console.time('readfile')

@@ -107,10 +107,12 @@ function runDirectElectronSmoke() {
 			"const fs = require('fs')",
 			"const {app} = require('electron')",
 			`const fixture = ${JSON.stringify(FixturePath)}`,
+			"process.env.NODE_NATIVE_OCR_WINDOWS_BACKEND = 'native'",
 			`const mod = require(${JSON.stringify(path.join(RepoRoot, 'src'))})`,
 			'',
 			'app.whenReady().then(async () => {',
 			'  try {',
+			"    assert.strictEqual(mod.__internal.getBackendName(), 'native')",
 			`    const txt = await mod.recognize(fs.readFileSync(fixture), {lang: 'eng', tessdataPath: ${JSON.stringify(TessdataPath)}, requireNonEmpty: true})`,
 			"    assert.strictEqual(typeof txt, 'string')",
 			"    assert.ok(txt.length > 0)",
@@ -131,7 +133,10 @@ function runDirectElectronSmoke() {
 		{
 			cwd: RepoRoot,
 			shell: process.platform === 'win32',
-			env: getSpawnEnv()
+			env: {
+				...getSpawnEnv(),
+				NODE_NATIVE_OCR_WINDOWS_BACKEND: 'native'
+			}
 		}
 	)
 
@@ -165,12 +170,15 @@ function runBundledLayoutSmoke() {
 			"const assert = require('assert')",
 			"const fs = require('fs')",
 			"const {app} = require('electron')",
+			"process.env.NODE_NATIVE_OCR_WINDOWS_BACKEND = 'native'",
 			"const {recognize} = require('node-native-ocr')",
+			"const {__internal} = require('node-native-ocr')",
 			'',
 			`const fixturePath = ${JSON.stringify(FixturePath)}`,
 			'',
 			'app.whenReady().then(async () => {',
 			'  try {',
+			"    assert.strictEqual(__internal.getBackendName(), 'native')",
 			`    const text = await recognize(fs.readFileSync(fixturePath), {lang: 'eng', tessdataPath: ${JSON.stringify(TessdataPath)}, requireNonEmpty: true})`,
 			"    assert.strictEqual(typeof text, 'string')",
 			"    assert.ok(text.length > 0)",
@@ -193,7 +201,10 @@ function runBundledLayoutSmoke() {
 		{
 			cwd: AppRoot,
 			shell: process.platform === 'win32',
-			env: getSpawnEnv()
+			env: {
+				...getSpawnEnv(),
+				NODE_NATIVE_OCR_WINDOWS_BACKEND: 'native'
+			}
 		}
 	)
 

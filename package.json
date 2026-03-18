@@ -55,6 +55,7 @@
     "test-js:linux": "nyc ava --verbose --timeout=10s",
     "test-js:windows": "node scripts/windows-smoke.js",
     "test-js:default": "ava --verbose --timeout=10s",
+    "test-native-harness": "node ./scripts/windows-native-harness.js",
     "report-cov": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "prepack": "npm run clean-tesseract && node ./scripts/prepack"
   },

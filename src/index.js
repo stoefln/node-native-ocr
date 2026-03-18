@@ -5,7 +5,10 @@ const crypto = require('crypto')
 const {execFile} = require('child_process')
 const packageRootPath = path.resolve(__dirname, '..')
 const isWindows = process.platform === 'win32'
-const bindings = isWindows ? null : require('node-gyp-build')(packageRootPath)
+
+const WINDOWS_BACKEND_ENV = 'NODE_NATIVE_OCR_WINDOWS_BACKEND'
+const BACKEND_CLI = 'cli'
+const BACKEND_NATIVE = 'native'
 
 const DEFAULT_LANG = 'eng'
 const LANG_DELIMITER = '+'
@@ -23,6 +26,47 @@ const LEGACY_TESSERACT_BINARY = path.resolve(
   'bin',
   process.platform === 'win32' ? 'tesseract.exe' : 'tesseract'
 )
+
+let nativeBindings = null
+
+const getRequestedWindowsBackend = () => {
+  const requestedBackend = process.env[WINDOWS_BACKEND_ENV]
+
+  if (!requestedBackend) {
+    return null
+  }
+
+  if (requestedBackend !== BACKEND_CLI && requestedBackend !== BACKEND_NATIVE) {
+    throw new Error(
+      `Unsupported ${WINDOWS_BACKEND_ENV} value: ${requestedBackend}. Expected ${BACKEND_NATIVE} or ${BACKEND_CLI}.`
+    )
+  }
+
+  return requestedBackend
+}
+
+const getBackendName = () => {
+  if (!isWindows) {
+    return BACKEND_NATIVE
+  }
+
+  return getRequestedWindowsBackend() || BACKEND_CLI
+}
+
+const loadNativeBindings = () => {
+  if (nativeBindings) {
+    return nativeBindings
+  }
+
+  try {
+    nativeBindings = require('node-gyp-build')(packageRootPath)
+    return nativeBindings
+  } catch (error) {
+    const bindingsError = new Error(`Failed to load native bindings from ${packageRootPath}: ${error.message}`)
+    bindingsError.code = 'ERR_LOAD_NATIVE_BINDINGS'
+    throw bindingsError
+  }
+}
 
 /**
  * @typedef {Object} RecognizeOptions
@@ -195,9 +239,9 @@ const makePromise = method => {
 
       options = handleOptions(options)
 
-      const invoke = isWindows
+      const invoke = getBackendName() === BACKEND_CLI
         ? callback => runTesseractCli(arg, options, callback)
-        : callback => bindings[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', callback)
+        : callback => loadNativeBindings()[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', callback)
 
       invoke((err, text) => {
         if (err) {
@@ -214,3 +258,6 @@ const makePromise = method => {
 }
 
 exports.recognize = makePromise('recognize')
+exports.__internal = {
+  getBackendName
+}

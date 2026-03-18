@@ -94,35 +94,6 @@ jobs:
           "$env:GITHUB_WORKSPACE\\libjpeg\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$env:GITHUB_WORKSPACE\\zlib\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Provision bundled Windows OCR runtime for tests
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          choco install tesseract --no-progress -y
-
-          $runtimeDir = "$env:GITHUB_WORKSPACE\runtime\win32-x64"
-          New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
-          Get-ChildItem -Path $runtimeDir -File | Remove-Item -Force
-
-          $externalDir = "$env:ProgramFiles\Tesseract-OCR"
-          $externalExe = Join-Path $externalDir 'tesseract.exe'
-          if (!(Test-Path $externalExe)) {
-            throw "Known-good tesseract executable not found: $externalExe"
-          }
-
-          Copy-Item $externalExe -Destination (Join-Path $runtimeDir 'tesseract.exe') -Force
-          Get-ChildItem -Path $externalDir -Filter *.dll | ForEach-Object {
-            Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
-          }
-
-          "$runtimeDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-          $bundledExe = Join-Path $runtimeDir 'tesseract.exe'
-          Write-Host "Selected Windows test tesseract source: runtime-win32-x64"
-          Write-Host "Selected Windows test tesseract executable: $bundledExe"
-          "WINDOWS_TEST_TESSERACT_SOURCE=runtime-win32-x64" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "WINDOWS_TEST_TESSERACT_EXE=$bundledExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Set short Windows temp path
         if: runner.os == 'Windows'
         shell: pwsh
@@ -144,7 +115,6 @@ jobs:
           }
 
           Write-Host "\nExecutable resolution:" 
-          where.exe tesseract
           where.exe node
 
           $nativeDirs = @(
@@ -163,55 +133,20 @@ jobs:
             }
           }
 
-      - name: Tesseract self-check
+      - name: Run native Windows harness
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $tesseractExe = "$env:WINDOWS_TEST_TESSERACT_EXE"
-          $fixture = "$env:GITHUB_WORKSPACE\test\fixtures\test.jpg"
-          $tessdata = "$env:GITHUB_WORKSPACE\tessdata"
-          $selfCheckDir = Join-Path $env:RUNNER_TEMP "tesseract-selfcheck"
-          $selfCheckOut = Join-Path $selfCheckDir "ocr-selfcheck"
-
-          Write-Host "Self-check tesseract source: $env:WINDOWS_TEST_TESSERACT_SOURCE"
-          Write-Host "Self-check tesseract executable: $tesseractExe"
-
-          New-Item -ItemType Directory -Path $selfCheckDir -Force | Out-Null
-
-          & $tesseractExe --version
-          & $tesseractExe --list-langs --tessdata-dir $tessdata
-          $listLangsExit = $LASTEXITCODE
-          if ($listLangsExit -ne 0) {
-            Write-Warning "tesseract --list-langs failed with exit code $listLangsExit"
-          }
-
-          & $tesseractExe $fixture $selfCheckOut --tessdata-dir $tessdata -l eng
-          $selfCheckExit = $LASTEXITCODE
-          if ($selfCheckExit -ne 0) {
-            Write-Warning "tesseract self-check OCR command failed with exit code $selfCheckExit"
-          }
-
-          $selfCheckTxt = "$selfCheckOut.txt"
-          if (!(Test-Path $selfCheckTxt)) {
-            Write-Warning "Self-check output not found: $selfCheckTxt"
-            exit 0
-          }
-
-          $outSize = (Get-Item $selfCheckTxt).Length
-          Write-Host "Self-check output bytes: $outSize"
-          if ($outSize -le 0) {
-            Write-Warning "Self-check output is empty: $selfCheckTxt"
-          }
-
-          $global:LASTEXITCODE = 0
+        env:
+          NODE_NATIVE_OCR_WINDOWS_BACKEND: native
+        run: npm run test-native-harness
 
       - name: Run tests
+        env:
+          NODE_NATIVE_OCR_WINDOWS_BACKEND: native
         run: |
           npm test
 
       - name: Run Electron smoke tests
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $env:NODE_NATIVE_OCR_TESSERACT_BINARY = $env:WINDOWS_TEST_TESSERACT_EXE
-          npm run test-electron -- "${{ env.REQUIRED_ELECTRON_VERSION }}"
+        env:
+          NODE_NATIVE_OCR_WINDOWS_BACKEND: native
+        run: npm run test-electron -- "${{ env.REQUIRED_ELECTRON_VERSION }}"

@@ -7,21 +7,24 @@ process.env.NODE_NATIVE_OCR_WINDOWS_BACKEND = 'native'
 const {recognize, __internal} = require('../src')
 
 const fixtures = file => path.join(__dirname, '..', 'test', 'fixtures', file)
+const ITERATIONS = 20
 
 async function main() {
   assert.strictEqual(__internal.getBackendName(), 'native')
 
   const buffer = await fs.readFile(fixtures('test.jpg'))
 
-  const txt = await recognize(buffer, {lang: 'eng'})
-  assert.strictEqual(typeof txt, 'string')
-  assert.ok(txt.length > 0)
+  for (let index = 0; index < ITERATIONS; index += 1) {
+    const text = await recognize(buffer, {lang: 'eng'})
+    assert.strictEqual(typeof text, 'string')
+    assert.ok(text.length > 0)
+  }
 
   const tsv = await recognize(buffer, {lang: 'eng', format: 'tsv'})
   assert.strictEqual(typeof tsv, 'string')
   assert.ok(tsv.includes('\t'))
 
-  console.log('Windows OCR smoke test passed')
+  console.log(`Windows native harness passed (${String(ITERATIONS)} txt runs + 1 tsv run)`)
 }
 
 main().catch(error => {
