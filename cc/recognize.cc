@@ -85,12 +85,6 @@ Pix *ReadImageFromMemoryByType(const uint8_t *buffer, size_t length)
 {
   const char *extension = DetectImageExtension(buffer, length);
 
-  if (std::strcmp(extension, ".jpg") == 0)
-  {
-    NativeDebug("native: ReadImageFromBuffer pixReadMemJpeg");
-    return pixReadMemJpeg(buffer, length, 0, 1, NULL, 0);
-  }
-
   if (std::strcmp(extension, ".png") == 0)
   {
     NativeDebug("native: ReadImageFromBuffer pixReadMemPng");
@@ -124,10 +118,65 @@ Pix *ReadImageFromMemoryByType(const uint8_t *buffer, size_t length)
   return nullptr;
 }
 
+Pix *ReadImageFromTempFileByType(const uint8_t *buffer, size_t length)
+{
+#ifdef _WIN32
+  char tempPath[MAX_PATH];
+  if (GetTempPathA(MAX_PATH, tempPath) <= 0)
+  {
+    return nullptr;
+  }
+
+  char tempFile[MAX_PATH];
+  if (GetTempFileNameA(tempPath, "ocr", 0, tempFile) <= 0)
+  {
+    return nullptr;
+  }
+
+  const char *extension = DetectImageExtension(buffer, length);
+  const std::string imagePath = std::string(tempFile) + extension;
+  DeleteFileA(tempFile);
+
+  std::ofstream tempStream(imagePath.c_str(), std::ios::binary | std::ios::out | std::ios::trunc);
+  if (!tempStream.is_open())
+  {
+    DeleteFileA(imagePath.c_str());
+    return nullptr;
+  }
+
+  tempStream.write(reinterpret_cast<const char *>(buffer), static_cast<std::streamsize>(length));
+  tempStream.close();
+
+  Pix *image = nullptr;
+  if (std::strcmp(extension, ".jpg") == 0)
+  {
+    NativeDebug("native: ReadImageFromBuffer pixReadJpeg file");
+    image = pixReadJpeg(imagePath.c_str(), 0, 1, NULL, 0);
+  }
+  else if (std::strcmp(extension, ".tif") == 0)
+  {
+    NativeDebug("native: ReadImageFromBuffer pixReadTiff file");
+    image = pixReadTiff(imagePath.c_str(), 0);
+  }
+
+  DeleteFileA(imagePath.c_str());
+  return image;
+#else
+  return nullptr;
+#endif
+}
+
 Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
 {
   NativeDebug("native: ReadImageFromBuffer enter");
 #ifdef _WIN32
+  Pix *fileImage = ReadImageFromTempFileByType(buffer, length);
+  if (fileImage != nullptr)
+  {
+    NativeDebug("native: ReadImageFromBuffer direct file decoder ok");
+    return fileImage;
+  }
+
   Pix *image = ReadImageFromMemoryByType(buffer, length);
   if (image != nullptr)
   {
