@@ -136,6 +136,7 @@ jobs:
       - name: Run native Windows harness
         if: runner.os == 'Windows'
         env:
+          NODE_NATIVE_OCR_DEBUG_NATIVE: "1"
           NODE_NATIVE_OCR_WINDOWS_BACKEND: native
         run: npm run test-native-harness
 

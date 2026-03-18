@@ -18,8 +18,26 @@ using Napi::Function;
 using Napi::HandleScope;
 using Napi::String;
 
+bool NativeDebugEnabled()
+{
+  const char *value = std::getenv("NODE_NATIVE_OCR_DEBUG_NATIVE");
+  return value != nullptr && value[0] != '\0' && std::strcmp(value, "0") != 0;
+}
+
+void NativeDebug(const char *message)
+{
+  if (!NativeDebugEnabled())
+  {
+    return;
+  }
+
+  fprintf(stderr, "%s\n", message);
+  fflush(stderr);
+}
+
 Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
 {
+  NativeDebug("native: ReadImageFromBuffer enter");
 #ifdef _WIN32
   char tempPath[MAX_PATH];
   if (GetTempPathA(MAX_PATH, tempPath) > 0)
@@ -32,15 +50,20 @@ Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
       {
         tempStream.write(reinterpret_cast<const char *>(buffer), static_cast<std::streamsize>(length));
         tempStream.close();
+        NativeDebug("native: ReadImageFromBuffer pixRead temp file");
         Pix *image = pixRead(tempFile);
         DeleteFileA(tempFile);
+        NativeDebug(image == nullptr ? "native: ReadImageFromBuffer temp pixRead failed" : "native: ReadImageFromBuffer temp pixRead ok");
         return image;
       }
       DeleteFileA(tempFile);
     }
   }
 #endif
-  return pixReadMem(buffer, length);
+  NativeDebug("native: ReadImageFromBuffer pixReadMem");
+  Pix *image = pixReadMem(buffer, length);
+  NativeDebug(image == nullptr ? "native: ReadImageFromBuffer pixReadMem failed" : "native: ReadImageFromBuffer pixReadMem ok");
+  return image;
 }
 
 bool RecognizeBuffer(const uint8_t *buffer,
@@ -51,9 +74,11 @@ bool RecognizeBuffer(const uint8_t *buffer,
                      std::string *result,
                      std::string *errorCode)
 {
+  NativeDebug("native: RecognizeBuffer enter");
   Pix *image = ReadImageFromBuffer(buffer, length);
   if (image == nullptr)
   {
+    NativeDebug("native: RecognizeBuffer image read failed");
     *errorCode = "ERR_READ_IMAGE";
     return false;
   }
@@ -61,6 +86,7 @@ bool RecognizeBuffer(const uint8_t *buffer,
   char tessErrorCode[50] = {0};
   char tessErrorMessage[200] = {0};
   char *outText = nullptr;
+  NativeDebug("native: RecognizeBuffer TessRecognizePix start");
   const int tessFailed = TessRecognizePix(
       image,
       lang.c_str(),
@@ -69,6 +95,7 @@ bool RecognizeBuffer(const uint8_t *buffer,
       outText,
       tessErrorCode,
       tessErrorMessage);
+  NativeDebug("native: RecognizeBuffer TessRecognizePix done");
 
   if (tessFailed != 0)
   {
@@ -84,6 +111,7 @@ bool RecognizeBuffer(const uint8_t *buffer,
 
   result->assign(outText == nullptr ? "" : outText);
   delete[] outText;
+  NativeDebug("native: RecognizeBuffer success");
   return true;
 }
 
@@ -188,14 +216,17 @@ void Recognize(const Napi::CallbackInfo &info)
   _getBufferInfo(info[0].ToObject(), (void **)(&bufferData), &bufferLength);
 
 #ifdef _WIN32
+  NativeDebug("native: Recognize sync path start");
   std::string result;
   std::string errorCode;
   if (!RecognizeBuffer(bufferData, bufferLength, lang, tessDataPath, tsvOutput, &result, &errorCode))
   {
+    NativeDebug("native: Recognize sync path error");
     callback.Call({Napi::Error::New(env, errorCode).Value()});
     return;
   }
 
+  NativeDebug("native: Recognize sync path callback success");
   callback.Call({env.Null(), String::New(env, result)});
   return;
 #endif
