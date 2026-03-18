@@ -8,6 +8,8 @@
 #include <vector>
 #ifdef _WIN32
 #include <windows.h>
+#include <gdiplus.h>
+#include <objidl.h>
 #endif
 #include "recognize.h"
 #include "ocr.h"
@@ -33,6 +35,111 @@ void NativeDebug(const char *message)
 
   fprintf(stderr, "%s\n", message);
   fflush(stderr);
+}
+
+Pix *ReadImageWithGdiPlus(const uint8_t *buffer, size_t length)
+{
+#ifdef _WIN32
+  static ULONG_PTR gdiplusToken = 0;
+  static bool gdiplusInitialized = false;
+
+  if (!gdiplusInitialized)
+  {
+    Gdiplus::GdiplusStartupInput startupInput;
+    if (Gdiplus::GdiplusStartup(&gdiplusToken, &startupInput, NULL) != Gdiplus::Ok)
+    {
+      NativeDebug("native: GDI+ startup failed");
+      return nullptr;
+    }
+    gdiplusInitialized = true;
+  }
+
+  HGLOBAL memory = GlobalAlloc(GMEM_MOVEABLE, length);
+  if (memory == NULL)
+  {
+    NativeDebug("native: GDI+ GlobalAlloc failed");
+    return nullptr;
+  }
+
+  void *memoryData = GlobalLock(memory);
+  if (memoryData == NULL)
+  {
+    GlobalFree(memory);
+    NativeDebug("native: GDI+ GlobalLock failed");
+    return nullptr;
+  }
+
+  std::memcpy(memoryData, buffer, length);
+  GlobalUnlock(memory);
+
+  IStream *stream = nullptr;
+  if (CreateStreamOnHGlobal(memory, TRUE, &stream) != S_OK)
+  {
+    GlobalFree(memory);
+    NativeDebug("native: GDI+ CreateStreamOnHGlobal failed");
+    return nullptr;
+  }
+
+  Gdiplus::Bitmap bitmap(stream, FALSE);
+  stream->Release();
+
+  if (bitmap.GetLastStatus() != Gdiplus::Ok)
+  {
+    NativeDebug("native: GDI+ Bitmap load failed");
+    return nullptr;
+  }
+
+  const int width = static_cast<int>(bitmap.GetWidth());
+  const int height = static_cast<int>(bitmap.GetHeight());
+  if (width <= 0 || height <= 0)
+  {
+    NativeDebug("native: GDI+ invalid image size");
+    return nullptr;
+  }
+
+  Gdiplus::Rect rect(0, 0, width, height);
+  Gdiplus::BitmapData bitmapData;
+  if (bitmap.LockBits(&rect, Gdiplus::ImageLockModeRead, PixelFormat32bppARGB, &bitmapData) != Gdiplus::Ok)
+  {
+    NativeDebug("native: GDI+ LockBits failed");
+    return nullptr;
+  }
+
+  Pix *image = pixCreate(width, height, 32);
+  if (image == nullptr)
+  {
+    bitmap.UnlockBits(&bitmapData);
+    NativeDebug("native: pixCreate failed");
+    return nullptr;
+  }
+
+  l_uint32 *pixData = pixGetData(image);
+  const l_int32 wpl = pixGetWpl(image);
+  const int stride = bitmapData.Stride;
+  const uint8_t *scan0 = static_cast<const uint8_t *>(bitmapData.Scan0);
+
+  for (int y = 0; y < height; y += 1)
+  {
+    const uint8_t *srcLine = stride >= 0
+        ? scan0 + (y * stride)
+        : scan0 + ((height - 1 - y) * (-stride));
+    l_uint32 *dstLine = pixData + (y * wpl);
+
+    for (int x = 0; x < width; x += 1)
+    {
+      const uint8_t blue = srcLine[(x * 4) + 0];
+      const uint8_t green = srcLine[(x * 4) + 1];
+      const uint8_t red = srcLine[(x * 4) + 2];
+      composeRGBPixel(red, green, blue, dstLine + x);
+    }
+  }
+
+  bitmap.UnlockBits(&bitmapData);
+  NativeDebug("native: GDI+ decode ok");
+  return image;
+#else
+  return nullptr;
+#endif
 }
 
 const char *DetectImageExtension(const uint8_t *buffer, size_t length)
@@ -170,6 +277,13 @@ Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
 {
   NativeDebug("native: ReadImageFromBuffer enter");
 #ifdef _WIN32
+  Pix *gdiImage = ReadImageWithGdiPlus(buffer, length);
+  if (gdiImage != nullptr)
+  {
+    NativeDebug("native: ReadImageFromBuffer GDI+ ok");
+    return gdiImage;
+  }
+
   Pix *fileImage = ReadImageFromTempFileByType(buffer, length);
   if (fileImage != nullptr)
   {

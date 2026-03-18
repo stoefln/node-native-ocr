@@ -42,7 +42,8 @@
             '../leptonica/build/bin/lib/leptonica-1.80.0.lib',
             '../libjpeg/build/bin/lib/jpeg.lib',
             '../libpng/build/bin/lib/libpng16.lib',
-            '../libtiff/build/bin/lib/tiff.lib'
+            '../libtiff/build/bin/lib/tiff.lib',
+            'gdiplus.lib'
           ]
         }]
       ],
