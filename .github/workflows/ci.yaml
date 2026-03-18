@@ -94,23 +94,31 @@ jobs:
           "$env:GITHUB_WORKSPACE\\libjpeg\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$env:GITHUB_WORKSPACE\\zlib\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Provision known-good Windows native runtime DLLs
+      - name: Bundle Windows native runtime DLLs
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install tesseract --no-progress -y
-
           $runtimeDir = "$env:GITHUB_WORKSPACE\runtime\win32-x64"
           New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
           Get-ChildItem -Path $runtimeDir -File | Remove-Item -Force
 
-          $externalDir = "$env:ProgramFiles\Tesseract-OCR"
-          if (!(Test-Path $externalDir)) {
-            throw "Known-good Tesseract installation not found: $externalDir"
-          }
+          $nativeDirs = @(
+            "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\leptonica\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libtiff\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libpng\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libjpeg\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\zlib\build\bin\bin"
+          )
 
-          Get-ChildItem -Path $externalDir -Filter *.dll | ForEach-Object {
-            Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
+          foreach ($dir in $nativeDirs) {
+            if (!(Test-Path $dir)) {
+              continue
+            }
+
+            Get-ChildItem -Path $dir -Filter *.dll | ForEach-Object {
+              Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
+            }
           }
 
           $dllCount = (Get-ChildItem -Path $runtimeDir -Filter *.dll).Count
@@ -118,7 +126,7 @@ jobs:
             throw "No runtime DLLs were copied into $runtimeDir"
           }
 
-          Write-Host "Known-good runtime DLLs:"
+          Write-Host "Bundled runtime DLLs from build outputs:"
           Get-ChildItem -Path $runtimeDir | Select-Object Name,Length
 
           "$runtimeDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
