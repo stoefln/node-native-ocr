@@ -35,6 +35,52 @@ void NativeDebug(const char *message)
   fflush(stderr);
 }
 
+const char *DetectImageExtension(const uint8_t *buffer, size_t length)
+{
+  if (length >= 3 && buffer[0] == 0xFF && buffer[1] == 0xD8 && buffer[2] == 0xFF)
+  {
+    return ".jpg";
+  }
+
+  if (length >= 8 &&
+      buffer[0] == 0x89 && buffer[1] == 0x50 && buffer[2] == 0x4E && buffer[3] == 0x47 &&
+      buffer[4] == 0x0D && buffer[5] == 0x0A && buffer[6] == 0x1A && buffer[7] == 0x0A)
+  {
+    return ".png";
+  }
+
+  if (length >= 4 &&
+      ((buffer[0] == 0x49 && buffer[1] == 0x49 && buffer[2] == 0x2A && buffer[3] == 0x00) ||
+       (buffer[0] == 0x4D && buffer[1] == 0x4D && buffer[2] == 0x00 && buffer[3] == 0x2A)))
+  {
+    return ".tif";
+  }
+
+  if (length >= 2 && buffer[0] == 0x42 && buffer[1] == 0x4D)
+  {
+    return ".bmp";
+  }
+
+  if (length >= 6 && std::memcmp(buffer, "GIF87a", 6) == 0)
+  {
+    return ".gif";
+  }
+
+  if (length >= 6 && std::memcmp(buffer, "GIF89a", 6) == 0)
+  {
+    return ".gif";
+  }
+
+  if (length >= 12 &&
+      std::memcmp(buffer, "RIFF", 4) == 0 &&
+      std::memcmp(buffer + 8, "WEBP", 4) == 0)
+  {
+    return ".webp";
+  }
+
+  return ".img";
+}
+
 Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
 {
   NativeDebug("native: ReadImageFromBuffer enter");
@@ -45,18 +91,21 @@ Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
     char tempFile[MAX_PATH];
     if (GetTempFileNameA(tempPath, "ocr", 0, tempFile) > 0)
     {
-      std::ofstream tempStream(tempFile, std::ios::binary | std::ios::out | std::ios::trunc);
+      std::string imagePath = std::string(tempFile) + DetectImageExtension(buffer, length);
+      DeleteFileA(tempFile);
+
+      std::ofstream tempStream(imagePath.c_str(), std::ios::binary | std::ios::out | std::ios::trunc);
       if (tempStream.is_open())
       {
         tempStream.write(reinterpret_cast<const char *>(buffer), static_cast<std::streamsize>(length));
         tempStream.close();
         NativeDebug("native: ReadImageFromBuffer pixRead temp file");
-        Pix *image = pixRead(tempFile);
-        DeleteFileA(tempFile);
+        Pix *image = pixRead(imagePath.c_str());
+        DeleteFileA(imagePath.c_str());
         NativeDebug(image == nullptr ? "native: ReadImageFromBuffer temp pixRead failed" : "native: ReadImageFromBuffer temp pixRead ok");
         return image;
       }
-      DeleteFileA(tempFile);
+      DeleteFileA(imagePath.c_str());
     }
   }
 #endif
