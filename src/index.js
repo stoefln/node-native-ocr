@@ -1,56 +1,14 @@
 const path = require('path')
-const fs = require('fs')
-const os = require('os')
-const crypto = require('crypto')
-const {execFile} = require('child_process')
 const packageRootPath = path.resolve(__dirname, '..')
-const isWindows = process.platform === 'win32'
-
-const WINDOWS_BACKEND_ENV = 'NODE_NATIVE_OCR_WINDOWS_BACKEND'
-const BACKEND_CLI = 'cli'
 const BACKEND_NATIVE = 'native'
 
 const DEFAULT_LANG = 'eng'
 const LANG_DELIMITER = '+'
-const DEFAULT_TESSERACT_BINARY = path.resolve(
-  packageRootPath,
-  'runtime',
-  'win32-x64',
-  'tesseract.exe'
-)
-const LEGACY_TESSERACT_BINARY = path.resolve(
-  packageRootPath,
-  'tesseract',
-  'build',
-  'bin',
-  'bin',
-  process.platform === 'win32' ? 'tesseract.exe' : 'tesseract'
-)
 
 let nativeBindings = null
 
-const getRequestedWindowsBackend = () => {
-  const requestedBackend = process.env[WINDOWS_BACKEND_ENV]
-
-  if (!requestedBackend) {
-    return null
-  }
-
-  if (requestedBackend !== BACKEND_CLI && requestedBackend !== BACKEND_NATIVE) {
-    throw new Error(
-      `Unsupported ${WINDOWS_BACKEND_ENV} value: ${requestedBackend}. Expected ${BACKEND_NATIVE} or ${BACKEND_CLI}.`
-    )
-  }
-
-  return requestedBackend
-}
-
 const getBackendName = () => {
-  if (!isWindows) {
-    return BACKEND_NATIVE
-  }
-
-  return getRequestedWindowsBackend() || BACKEND_CLI
+  return BACKEND_NATIVE
 }
 
 const loadNativeBindings = () => {
@@ -72,7 +30,6 @@ const loadNativeBindings = () => {
  * @typedef {Object} RecognizeOptions
  * @property {string|string[]} [lang]
  * @property {string} [tessdataPath]
- * @property {string} [tesseractBinary]
  * @property {'txt'|'tsv'} [format]
  * @property {number} [psm]
  * @property {boolean} [requireNonEmpty]
@@ -88,9 +45,6 @@ const handleOptions = (options = {}) => {
   if (!options.format) {
     options.format = 'txt'
   }
-  if (!options.tesseractBinary && process.env.NODE_NATIVE_OCR_TESSERACT_BINARY) {
-    options.tesseractBinary = process.env.NODE_NATIVE_OCR_TESSERACT_BINARY
-  }
   if (typeof options.requireNonEmpty !== 'boolean') {
     options.requireNonEmpty = false
   }
@@ -100,133 +54,6 @@ const handleOptions = (options = {}) => {
   }
 
   return options
-}
-
-const runTesseractCli = (buffer, options, callback) => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'node-native-ocr-'))
-  const tempFileName = typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
-  const inputFileName = `${tempFileName}.jpg`
-  const outputFileBase = `${tempFileName}-ocr`
-  const inputPath = path.join(tempDir, inputFileName)
-  const outputBasePath = path.join(tempDir, outputFileBase)
-  const executableCandidates = options.tesseractBinary
-    ? [options.tesseractBinary]
-    : [DEFAULT_TESSERACT_BINARY, LEGACY_TESSERACT_BINARY]
-  const executable = executableCandidates.find(candidate => fs.existsSync(candidate))
-
-  if (!executable) {
-    const missingBinaryError = new Error(
-      `No bundled tesseract executable found. Checked: ${executableCandidates.join(', ')}`
-    )
-    missingBinaryError.code = 'ERR_INIT_TESSER'
-    callback(missingBinaryError)
-    return
-  }
-
-  fs.writeFileSync(inputPath, buffer)
-
-  const args = [inputFileName, outputFileBase, '--tessdata-dir', options.tessdataPath, '-l', options.lang]
-  if (Number.isFinite(options.psm)) {
-    args.push('--psm', String(options.psm))
-  }
-  if (options.format === 'tsv') {
-    args.push('-c', 'tessedit_create_tsv=1', '-c', 'tessedit_create_txt=0')
-  }
-
-  execFile(
-    executable,
-    args,
-    {
-      cwd: tempDir,
-      env: {
-        ...process.env,
-        TESSDATA_PREFIX: options.tessdataPath,
-        OMP_THREAD_LIMIT: '1',
-        OMP_NUM_THREADS: '1'
-      },
-      windowsHide: true,
-      maxBuffer: 10 * 1024 * 1024
-    },
-    (error, stdout, stderr) => {
-    const outputExtension = options.format === 'tsv' ? 'tsv' : 'txt'
-    const outputPath = `${outputBasePath}.${outputExtension}`
-
-    if (error) {
-      if (fs.existsSync(outputPath)) {
-        try {
-          const outputText = fs.readFileSync(outputPath, 'utf8')
-          if (!options.requireNonEmpty || outputText.trim().length > 0) {
-            fs.rmSync(tempDir, {recursive: true, force: true})
-            callback(null, outputText)
-            return
-          }
-        } catch (readError) {
-          const readMessage = readError && readError.message ? readError.message : 'Failed to read tesseract output.'
-          const outputReadError = new Error(readMessage)
-          outputReadError.code = 'ERR_INIT_TESSER'
-          fs.rmSync(tempDir, {recursive: true, force: true})
-          callback(outputReadError)
-          return
-        }
-      }
-
-      const outputExists = fs.existsSync(outputPath)
-      let outputSize = -1
-      if (outputExists) {
-        try {
-          outputSize = fs.statSync(outputPath).size
-        } catch (_statError) {
-          outputSize = -1
-        }
-      }
-
-      const debugInfo = JSON.stringify(
-        {
-          executable,
-          args,
-          cwd: tempDir,
-          tessdataPath: options.tessdataPath,
-          envTessdataPrefix: options.tessdataPath,
-          outputPath,
-          outputExists,
-          outputSize,
-          stdout,
-          stderr,
-          processError: error.message,
-          exitCode: error.code,
-          signal: error.signal
-        },
-        null,
-        2
-      )
-
-      const commandError = new Error(`Tesseract CLI failed.\n${debugInfo}`)
-      commandError.code = 'ERR_INIT_TESSER'
-      fs.rmSync(tempDir, {recursive: true, force: true})
-      callback(commandError)
-      return
-    }
-
-    try {
-      const outputText = fs.readFileSync(outputPath, 'utf8')
-      if (options.requireNonEmpty && outputText.trim().length === 0) {
-        const emptyOutputError = new Error(`Tesseract CLI produced empty output at ${outputPath}`)
-        emptyOutputError.code = 'ERR_INIT_TESSER'
-        fs.rmSync(tempDir, {recursive: true, force: true})
-        callback(emptyOutputError)
-        return
-      }
-      fs.rmSync(tempDir, {recursive: true, force: true})
-      callback(null, outputText)
-    } catch (readError) {
-      const message = readError && readError.message ? readError.message : 'Failed to read tesseract output.'
-      const outputError = new Error(message)
-      outputError.code = 'ERR_INIT_TESSER'
-      fs.rmSync(tempDir, {recursive: true, force: true})
-      callback(outputError)
-    }
-    }
-  )
 }
 
 const makePromise = method => {
@@ -239,9 +66,7 @@ const makePromise = method => {
 
       options = handleOptions(options)
 
-      const invoke = getBackendName() === BACKEND_CLI
-        ? callback => runTesseractCli(arg, options, callback)
-        : callback => loadNativeBindings()[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', callback)
+      const invoke = callback => loadNativeBindings()[method](arg, options.lang, options.tessdataPath, options.format !== 'txt', callback)
 
       invoke((err, text) => {
         if (err) {

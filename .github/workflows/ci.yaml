@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ windows-latest ]
+        os: [ ubuntu-latest, macos-14, windows-latest ]
         node: [ "20" ]
 
     runs-on: ${{matrix.os}}
@@ -94,7 +94,7 @@ jobs:
           "$env:GITHUB_WORKSPACE\\libjpeg\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$env:GITHUB_WORKSPACE\\zlib\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Provision known-good Windows OCR runtime DLLs
+      - name: Provision known-good Windows native runtime DLLs
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -105,17 +105,20 @@ jobs:
           Get-ChildItem -Path $runtimeDir -File | Remove-Item -Force
 
           $externalDir = "$env:ProgramFiles\Tesseract-OCR"
-          $externalExe = Join-Path $externalDir 'tesseract.exe'
-          if (!(Test-Path $externalExe)) {
-            throw "Known-good tesseract executable not found: $externalExe"
+          if (!(Test-Path $externalDir)) {
+            throw "Known-good Tesseract installation not found: $externalDir"
           }
 
-          Copy-Item $externalExe -Destination (Join-Path $runtimeDir 'tesseract.exe') -Force
           Get-ChildItem -Path $externalDir -Filter *.dll | ForEach-Object {
             Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
           }
 
-          Write-Host "Known-good runtime files:"
+          $dllCount = (Get-ChildItem -Path $runtimeDir -Filter *.dll).Count
+          if ($dllCount -eq 0) {
+            throw "No runtime DLLs were copied into $runtimeDir"
+          }
+
+          Write-Host "Known-good runtime DLLs:"
           Get-ChildItem -Path $runtimeDir | Select-Object Name,Length
 
           "$runtimeDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -163,17 +166,12 @@ jobs:
         if: runner.os == 'Windows'
         env:
           NODE_NATIVE_OCR_DEBUG_NATIVE: "1"
-          NODE_NATIVE_OCR_WINDOWS_BACKEND: native
         run: npm run test-native-harness
 
       - name: Run tests
-        env:
-          NODE_NATIVE_OCR_WINDOWS_BACKEND: native
         run: |
           npm test
 
       - name: Run Electron smoke tests
         if: runner.os == 'Windows'
-        env:
-          NODE_NATIVE_OCR_WINDOWS_BACKEND: native
         run: npm run test-electron -- "${{ env.REQUIRED_ELECTRON_VERSION }}"

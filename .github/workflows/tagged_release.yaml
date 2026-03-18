@@ -80,7 +80,7 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const path=require('path'); const dir=path.join('prebuilds','${{ matrix.target }}'); if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir).filter(name => name.endsWith('.node')); if(files.length===0) throw new Error('No .node prebuild found in '+dir); console.log('Found prebuilds:', files.join(', '));"
 
-      - name: Prepare bundled Windows OCR runtime artifact
+      - name: Prepare bundled Windows native runtime DLL artifact
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -91,17 +91,20 @@ jobs:
           Get-ChildItem -Path $runtimeDir -File | Remove-Item -Force
 
           $externalDir = "$env:ProgramFiles\Tesseract-OCR"
-          $externalExe = Join-Path $externalDir 'tesseract.exe'
-          if (!(Test-Path $externalExe)) {
-            throw "Known-good tesseract executable not found: $externalExe"
+          if (!(Test-Path $externalDir)) {
+            throw "Known-good Tesseract installation not found: $externalDir"
           }
 
-          Copy-Item $externalExe -Destination (Join-Path $runtimeDir 'tesseract.exe') -Force
           Get-ChildItem -Path $externalDir -Filter *.dll | ForEach-Object {
             Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
           }
 
-          Write-Host "Bundled runtime files:"
+          $dllCount = (Get-ChildItem -Path $runtimeDir -Filter *.dll).Count
+          if ($dllCount -eq 0) {
+            throw "No runtime DLLs were copied into $runtimeDir"
+          }
+
+          Write-Host "Bundled runtime DLLs:"
           Get-ChildItem -Path $runtimeDir | Select-Object Name,Length
 
       - name: Verify required Electron target compatibility
@@ -115,7 +118,7 @@ jobs:
           path: prebuilds/
           retention-days: 1
 
-      - name: Upload bundled Windows OCR runtime artifact
+      - name: Upload bundled Windows native runtime DLL artifact
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
@@ -146,7 +149,7 @@ jobs:
           pattern: prebuilds-*
           merge-multiple: true
 
-      - name: Download bundled Windows OCR runtime artifact
+      - name: Download bundled Windows native runtime DLL artifact
         uses: actions/download-artifact@v4
         with:
           name: runtime-win32-x64
@@ -159,9 +162,9 @@ jobs:
           ls -la prebuilds/
           find prebuilds -name '*.node' -type f
 
-      - name: Verify bundled Windows OCR runtime files
+      - name: Verify bundled Windows native runtime DLLs
         run: |
-          node -e "const fs=require('fs'); const path=require('path'); const runtimeDir=path.join('runtime','win32-x64'); if(!fs.existsSync(runtimeDir)) throw new Error('Missing runtime dir: '+runtimeDir); const files=fs.readdirSync(runtimeDir); if(!files.includes('tesseract.exe')) throw new Error('Missing runtime/win32-x64/tesseract.exe'); const dllCount=files.filter(name => name.toLowerCase().endsWith('.dll')).length; if(dllCount===0) throw new Error('No DLL files found in runtime/win32-x64'); console.log('runtime files:', files.join(', '));"
+          node -e "const fs=require('fs'); const path=require('path'); const runtimeDir=path.join('runtime','win32-x64'); if(!fs.existsSync(runtimeDir)) throw new Error('Missing runtime dir: '+runtimeDir); const files=fs.readdirSync(runtimeDir); const dllCount=files.filter(name => name.toLowerCase().endsWith('.dll')).length; if(dllCount===0) throw new Error('No DLL files found in runtime/win32-x64'); if(files.some(name => name.toLowerCase() === 'tesseract.exe')) throw new Error('Unexpected runtime/win32-x64/tesseract.exe in native-only package'); console.log('runtime files:', files.join(', '));"
 
       - name: Verify all release prebuild targets are present
         run: |
@@ -179,12 +182,12 @@ jobs:
       - name: Show package contents
         run: npm pack --dry-run
 
-      - name: Verify packed tarball contains bundled Windows OCR runtime
+      - name: Verify packed tarball contains bundled Windows native runtime DLLs
         run: |
           TARBALL=$(node -e "const pkg=require('./package.json'); const tarName=(pkg.name + '-' + pkg.version).replace('@','').replace('/','-') + '.tgz'; process.stdout.write(tarName);")
           npm pack --quiet > /dev/null
           test -f "$TARBALL"
-          node -e "const {execFileSync}=require('child_process'); const tarball=process.argv[1]; const listing=execFileSync('tar',['-tzf',tarball],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean); const hasExe=listing.includes('package/runtime/win32-x64/tesseract.exe'); const hasDll=listing.some(name => /^package\/runtime\/win32-x64\/.*\.dll$/i.test(name)); if(!hasExe){throw new Error('Packed tarball missing runtime/win32-x64/tesseract.exe');} if(!hasDll){throw new Error('Packed tarball missing runtime/win32-x64/*.dll');} console.log('Verified runtime entries in packed tarball.');" "$TARBALL"
+          node -e "const {execFileSync}=require('child_process'); const tarball=process.argv[1]; const listing=execFileSync('tar',['-tzf',tarball],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean); const hasExe=listing.includes('package/runtime/win32-x64/tesseract.exe'); const hasDll=listing.some(name => /^package\/runtime\/win32-x64\/.*\.dll$/i.test(name)); if(hasExe){throw new Error('Packed tarball unexpectedly contains runtime/win32-x64/tesseract.exe');} if(!hasDll){throw new Error('Packed tarball missing runtime/win32-x64/*.dll');} console.log('Verified runtime DLL entries in packed tarball.');" "$TARBALL"
 
       - name: Pack release tarball
         run: npm pack

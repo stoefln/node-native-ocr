@@ -2,8 +2,6 @@ const assert = require('assert')
 const path = require('path')
 const fs = require('fs-extra')
 
-process.env.NODE_NATIVE_OCR_WINDOWS_BACKEND = 'native'
-
 const {recognize, __internal} = require('../src')
 
 const fixtures = file => path.join(__dirname, '..', 'test', 'fixtures', file)

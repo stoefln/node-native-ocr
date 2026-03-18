@@ -107,7 +107,6 @@ function runDirectElectronSmoke() {
 			"const fs = require('fs')",
 			"const {app} = require('electron')",
 			`const fixture = ${JSON.stringify(FixturePath)}`,
-			"process.env.NODE_NATIVE_OCR_WINDOWS_BACKEND = 'native'",
 			`const mod = require(${JSON.stringify(path.join(RepoRoot, 'src'))})`,
 			'',
 			'app.whenReady().then(async () => {',
@@ -133,10 +132,7 @@ function runDirectElectronSmoke() {
 		{
 			cwd: RepoRoot,
 			shell: process.platform === 'win32',
-			env: {
-				...getSpawnEnv(),
-				NODE_NATIVE_OCR_WINDOWS_BACKEND: 'native'
-			}
+			env: getSpawnEnv()
 		}
 	)
 
@@ -170,7 +166,6 @@ function runBundledLayoutSmoke() {
 			"const assert = require('assert')",
 			"const fs = require('fs')",
 			"const {app} = require('electron')",
-			"process.env.NODE_NATIVE_OCR_WINDOWS_BACKEND = 'native'",
 			"const {recognize} = require('node-native-ocr')",
 			"const {__internal} = require('node-native-ocr')",
 			'',
@@ -201,10 +196,7 @@ function runBundledLayoutSmoke() {
 		{
 			cwd: AppRoot,
 			shell: process.platform === 'win32',
-			env: {
-				...getSpawnEnv(),
-				NODE_NATIVE_OCR_WINDOWS_BACKEND: 'native'
-			}
+			env: getSpawnEnv()
 		}
 	)
 

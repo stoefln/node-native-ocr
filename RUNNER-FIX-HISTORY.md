@@ -878,3 +878,139 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - first implement ideas `3` + `4` + `5` (better observability),
   - then implement ideas `1` + `2` (dual backend CI),
   - then optionally add idea `7` (Electron-targeted addon build experiment).
+
+## Recent Follow-up (Post BF)
+
+### Iteration BG (completed)
+- Commit: `68ab894` — *Enforce bundled Windows OCR runtime in CI and release packaging*
+- GitHub run: `23192016760` (`Run CI`)
+- Outcome:
+  - Windows CI failed in Electron smoke with bundled executable path.
+  - Failure signature remained crash-like in OCR CLI execution (`0xC0000409`) with empty output.
+- Conclusion:
+  - strict bundled-only gating worked as intended and exposed instability in the bundled OCR runtime path.
+
+### Iteration BH (completed)
+- Commit: `bc671c4` — *Vendor known-good Windows OCR runtime into bundle*
+- GitHub run: `23192218373` (`Run CI`) → `success`
+- Outcome:
+  - CI passed when `runtime/win32-x64` was provisioned from known-good Windows Tesseract binaries.
+  - Electron smoke passed against bundled-layout runtime path.
+
+### Iteration BI-BK (completed)
+- Commits:
+  - `6b2d554` — tarball runtime verification hardening
+  - `d9977ae` — fix tarball variable passing
+  - `e16eceb` — release bump `0.4.14`
+- GitHub runs:
+  - `23193495388` (`Build & Publish tagged release`) → `failure` (tarball verification bug)
+  - `23194644101` (`Build & Publish tagged release`) → `success`
+- Release status:
+  - `v0.4.14` published to GitHub releases and npm with bundled `runtime/win32-x64` content verification.
+
+## Native-only Goal: Replace Windows CLI with `.node`
+
+### Additional Ideas To Try Next
+
+### 9. Add a reproducible Windows native crash harness outside AVA/Electron
+- Idea:
+  - Create a tiny script that repeatedly calls `recognize()` 100-1000 times in a single process with fixed fixture + options.
+  - Run it as a dedicated CI step for native backend only.
+- Why:
+  - isolates addon runtime stability from test framework and Electron process model.
+- Expected value:
+  - determines whether crash is deterministic and data-dependent.
+
+### 10. Enable AddressSanitizer/UBSan style diagnostics on Windows debug build
+- Idea:
+  - add an optional debug CI lane with sanitizer-compatible flags or MSVC runtime checks (`/RTC1`, iterator debug, heap checks).
+  - keep it non-blocking at first.
+- Why:
+  - current crashes (`0xC0000409`) look memory-corruption adjacent.
+- Expected value:
+  - pinpoints unsafe memory access in addon/native deps faster than log-only diagnostics.
+
+### 11. Build and ship addon-linked dependency closure as a native runtime bundle
+- Idea:
+  - explicitly collect and package only DLLs required by `node-native-ocr.node` (`dumpbin /dependents` driven).
+  - add a startup validator that checks for missing DLLs before first OCR call.
+- Why:
+  - avoids implicit PATH behavior and confirms addon runtime closure.
+- Expected value:
+  - removes hidden loader failures and clarifies whether crashes happen after successful load.
+
+### 12. Add backend switch and A/B test in the same CI job
+- Idea:
+  - env-gated backend selector (for example `NODE_NATIVE_OCR_WINDOWS_BACKEND=native|cli`) with two smoke invocations in one run.
+- Why:
+  - direct, same-run comparison removes runner-to-runner variance.
+- Expected value:
+  - high-confidence regression signal when native diverges from CLI.
+
+### 13. Add minidump capture for native path crashes
+- Idea:
+  - enable WER local dumps for `node.exe` and collect dump artifacts when native smoke crashes.
+  - include symbol resolution notes in artifacts.
+- Why:
+  - crash exit codes alone are insufficient for root-cause analysis.
+- Expected value:
+  - stack traces that identify whether failure is in addon glue, Leptonica, or Tesseract internals.
+
+### 14. Narrow feature surface for first native re-enable milestone
+- Idea:
+  - re-enable native backend with constrained options first:
+    - `format=txt` only
+    - single language (`eng`)
+    - file-backed decode path only on Windows.
+  - expand back to `tsv`/multi-lang only after baseline stability.
+- Why:
+  - staged rollout reduces variables and helps bisect instability.
+- Expected value:
+  - faster path to a stable native baseline.
+
+### 15. Reconcile build provenance between working external runtime and bundled native deps
+- Idea:
+  - compare compiler/runtime settings of known-good external binaries vs current built libs:
+    - CRT linkage mode
+    - OpenMP runtime
+    - SIMD toggles
+    - optimization/debug flags.
+- Why:
+  - behavior gap suggests build-profile mismatch, not API misuse alone.
+- Expected value:
+  - concrete build changes to converge bundled/native behavior to known-good runtime.
+
+## Proposed Order For Native-only Migration
+1. Add ideas `9`, `12`, and `13` first (deterministic repro + A/B + crash forensics).
+2. Add idea `11` to guarantee addon dependency closure and explicit startup checks.
+3. Run idea `10` debug diagnostics lane to identify memory safety defects.
+4. Re-enable native backend in constrained mode using idea `14`.
+5. Apply build-profile reconciliation from idea `15`, then expand feature surface.
+
+## Native-only Resolution
+
+### Iteration BL-BQ (completed)
+- Commits:
+  - `eb89d0f` — force Windows tests through the native addon path
+  - `542db54` — add native-only Windows harness diagnostics
+  - `34a4e38` — run Windows OCR natively on the main thread
+  - `caefe76` — instrument Windows native OCR stages
+  - `bbdb2fd` — exercise explicit Windows image decode paths
+  - `c777b65` — try direct JPEG file decode on Windows
+  - `192dbd5` — decode Windows OCR input with GDI+
+- GitHub runs:
+  - `23225792726` (`Run CI`) → `failure`
+  - `23226037548` (`Run CI`) → `failure`
+  - `23226149218` (`Run CI`) → `failure`
+  - `23226241434` (`Run CI`) → `failure`
+  - `23226348936` (`Run CI`) → `failure`
+  - `23226514022` (`Run CI`) → `failure`
+  - `23226643366` (`Run CI`) → `success`
+- Outcome:
+  - native-only Windows harnessing proved the crash happened before Tesseract initialization, inside image decode.
+  - Leptonica decode variants (`pixRead`, memory JPEG decode, direct JPEG file decode) all failed on GitHub Windows runners.
+  - replacing the Windows decode path with a GDI+ loader restored stable native execution.
+  - the successful run passed the native harness, the standard JS tests, and the Electron smoke tests with the `.node` path only.
+- Conclusion:
+  - Windows no longer requires the `tesseract.exe` fallback.
+  - the native addon path is now the validated implementation across the focused Windows CI lane.
