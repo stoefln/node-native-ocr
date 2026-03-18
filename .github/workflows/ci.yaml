@@ -94,6 +94,32 @@ jobs:
           "$env:GITHUB_WORKSPACE\\libjpeg\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           "$env:GITHUB_WORKSPACE\\zlib\\build\\bin\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Provision known-good Windows OCR runtime DLLs
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install tesseract --no-progress -y
+
+          $runtimeDir = "$env:GITHUB_WORKSPACE\runtime\win32-x64"
+          New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
+          Get-ChildItem -Path $runtimeDir -File | Remove-Item -Force
+
+          $externalDir = "$env:ProgramFiles\Tesseract-OCR"
+          $externalExe = Join-Path $externalDir 'tesseract.exe'
+          if (!(Test-Path $externalExe)) {
+            throw "Known-good tesseract executable not found: $externalExe"
+          }
+
+          Copy-Item $externalExe -Destination (Join-Path $runtimeDir 'tesseract.exe') -Force
+          Get-ChildItem -Path $externalDir -Filter *.dll | ForEach-Object {
+            Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
+          }
+
+          Write-Host "Known-good runtime files:"
+          Get-ChildItem -Path $runtimeDir | Select-Object Name,Length
+
+          "$runtimeDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Set short Windows temp path
         if: runner.os == 'Windows'
         shell: pwsh
