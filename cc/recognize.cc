@@ -162,9 +162,9 @@ Pix *ReadImageFromBuffer(const uint8_t *buffer, size_t length)
   }
 #endif
   NativeDebug("native: ReadImageFromBuffer pixReadMem");
-  Pix *image = pixReadMem(buffer, length);
-  NativeDebug(image == nullptr ? "native: ReadImageFromBuffer pixReadMem failed" : "native: ReadImageFromBuffer pixReadMem ok");
-  return image;
+  Pix *fallbackImage = pixReadMem(buffer, length);
+  NativeDebug(fallbackImage == nullptr ? "native: ReadImageFromBuffer pixReadMem failed" : "native: ReadImageFromBuffer pixReadMem ok");
+  return fallbackImage;
 }
 
 bool RecognizeBuffer(const uint8_t *buffer,
