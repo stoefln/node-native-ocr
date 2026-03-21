@@ -1014,3 +1014,28 @@ This file records the CI/workflow fix iterations so another agent can continue f
 - Conclusion:
   - Windows no longer requires the `tesseract.exe` fallback.
   - the native addon path is now the validated implementation across the focused Windows CI lane.
+
+### Iteration BR (completed)
+- User requirement update:
+  - stop relying on `PATH` for Windows addon dependency resolution.
+  - package Windows DLLs next to the `.node` files and test with sanitized `PATH`.
+- Local change summary:
+  - `scripts/sync-windows-dlls.js`
+    - added Windows-only helper that copies built dependency DLLs next to:
+      - `build/Release/node-native-ocr.node`
+      - `prebuilds/win32-x64/*.node`
+  - `package.json`
+    - `build-cc` and `prebuildify` now run the sync helper after generating `.node` artifacts.
+    - removed `runtime/` from packaged file list.
+  - `.github/workflows/ci.yaml`
+    - removed `GITHUB_PATH` injection of native dependency build directories.
+    - added verification that `build/Release` contains colocated DLLs.
+    - sanitizes `PATH` before Windows harness/tests/Electron smoke so CI does not mask packaging regressions.
+  - `.github/workflows/tagged_release.yaml`
+    - release verification now checks for DLLs next to `prebuilds/win32-x64/*.node` instead of under `runtime/win32-x64`.
+    - added `verify_windows_prebuild` job that downloads the Windows prebuild artifact and loads it in a clean process with sanitized `PATH`.
+- Rationale:
+  - prior green CI depended on workflow-level `PATH` augmentation, which is not a reliable substitute for package layout.
+  - colocating DLLs with the Windows addon is the intended packaging model; tests must prove that layout works without `PATH` assistance.
+- Guardrail for next agents:
+  - do not reintroduce `GITHUB_PATH` or package-level `PATH` hacks for Windows addon loading unless there is a demonstrated loader limitation that cannot be solved by colocating the required DLLs next to the `.node` file.

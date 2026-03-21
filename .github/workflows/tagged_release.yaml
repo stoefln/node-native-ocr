@@ -80,43 +80,30 @@ jobs:
         run: |
           node -e "const fs=require('fs'); const path=require('path'); const dir=path.join('prebuilds','${{ matrix.target }}'); if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir).filter(name => name.endsWith('.node')); if(files.length===0) throw new Error('No .node prebuild found in '+dir); console.log('Found prebuilds:', files.join(', '));"
 
-      - name: Prepare bundled Windows native runtime DLL artifact
+      - name: Verify colocated Windows prebuild DLLs
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $runtimeDir = "$env:GITHUB_WORKSPACE\runtime\win32-x64"
-          New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
-          Get-ChildItem -Path $runtimeDir -File | Remove-Item -Force
+          $prebuildDir = "$env:GITHUB_WORKSPACE\prebuilds\win32-x64"
+          $addonCount = (Get-ChildItem -Path $prebuildDir -Filter *.node -File).Count
+          $dllCount = (Get-ChildItem -Path $prebuildDir -Filter *.dll -File).Count
 
-          $nativeDirs = @(
-            "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\leptonica\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\libtiff\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\libpng\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\libjpeg\build\bin\bin",
-            "$env:GITHUB_WORKSPACE\zlib\build\bin\bin"
-          )
-
-          foreach ($dir in $nativeDirs) {
-            if (!(Test-Path $dir)) {
-              continue
-            }
-
-            Get-ChildItem -Path $dir -Filter *.dll | ForEach-Object {
-              Copy-Item $_.FullName -Destination (Join-Path $runtimeDir $_.Name) -Force
-            }
+          if ($addonCount -eq 0) {
+            throw "No Windows prebuild addon found in $prebuildDir"
           }
 
-          $dllCount = (Get-ChildItem -Path $runtimeDir -Filter *.dll).Count
           if ($dllCount -eq 0) {
-            throw "No runtime DLLs were copied into $runtimeDir"
+            throw "No DLLs were copied next to the Windows prebuild in $prebuildDir"
           }
 
-          Write-Host "Bundled runtime DLLs from build outputs:"
-          Get-ChildItem -Path $runtimeDir | Select-Object Name,Length
+          if (Get-ChildItem -Path $prebuildDir -Filter tesseract.exe -File -ErrorAction SilentlyContinue) {
+            throw "Unexpected tesseract.exe next to Windows prebuild in $prebuildDir"
+          }
+
+          Write-Host "Windows prebuild directory contents:"
+          Get-ChildItem -Path $prebuildDir | Select-Object Name,Length
 
       - name: Verify required Electron target compatibility
-        if: runner.os != 'Windows'
         run: node ./scripts/verify-electron-target.js "${{ env.REQUIRED_ELECTRON_VERSION }}"
 
       - name: Upload prebuilds artifact
@@ -126,16 +113,70 @@ jobs:
           path: prebuilds/
           retention-days: 1
 
-      - name: Upload bundled Windows native runtime DLL artifact
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+  verify_windows_prebuild:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: runtime-win32-x64
-          path: runtime/win32-x64/
-          retention-days: 1
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Remove checked-in prebuilds
+        shell: pwsh
+        run: |
+          if (Test-Path prebuilds) {
+            Remove-Item -Recurse -Force prebuilds
+          }
+
+      - name: Download Windows prebuild artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: prebuilds-win32-x64
+          path: .
+
+      - name: Sanitize PATH for clean prebuild load
+        shell: pwsh
+        run: |
+          $blocked = @(
+            "$env:GITHUB_WORKSPACE\tesseract\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\leptonica\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libtiff\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libpng\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\libjpeg\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\zlib\build\bin\bin",
+            "$env:GITHUB_WORKSPACE\runtime\win32-x64"
+          ) | ForEach-Object {
+            $_.TrimEnd('\\').ToLowerInvariant()
+          }
+
+          $filtered = @()
+          foreach ($entry in ($env:PATH -split ';')) {
+            $normalized = $entry.Trim().TrimEnd('\\').ToLowerInvariant()
+            if ($normalized -and $blocked -contains $normalized) {
+              Write-Host "Removing PATH entry for clean prebuild load: $entry"
+              continue
+            }
+
+            $filtered += $entry
+          }
+
+          "PATH=$($filtered -join ';')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify Windows prebuild loads in clean process
+        shell: pwsh
+        run: |
+          node -e "const fs=require('fs'); const path=require('path'); const dir=path.join(process.cwd(),'prebuilds','win32-x64'); if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir); if(!files.some(name => name.toLowerCase().endsWith('.node'))) throw new Error('Missing .node file in '+dir); if(!files.some(name => name.toLowerCase().endsWith('.dll'))) throw new Error('Missing colocated DLL in '+dir); const bindings=require('node-gyp-build')(process.cwd()); if(typeof bindings.recognize!=='function') throw new Error('Loaded bindings missing recognize export'); console.log('Loaded Windows prebuild from clean process.');"
 
   publish:
-    needs: build
+    needs: [build, verify_windows_prebuild]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -157,12 +198,6 @@ jobs:
           pattern: prebuilds-*
           merge-multiple: true
 
-      - name: Download bundled Windows native runtime DLL artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: runtime-win32-x64
-          path: runtime/win32-x64
-
       - name: Merge prebuilds into package
         run: |
           mkdir -p prebuilds
@@ -170,9 +205,9 @@ jobs:
           ls -la prebuilds/
           find prebuilds -name '*.node' -type f
 
-      - name: Verify bundled Windows native runtime DLLs
+      - name: Verify Windows release prebuild DLLs
         run: |
-          node -e "const fs=require('fs'); const path=require('path'); const runtimeDir=path.join('runtime','win32-x64'); if(!fs.existsSync(runtimeDir)) throw new Error('Missing runtime dir: '+runtimeDir); const files=fs.readdirSync(runtimeDir); const dllCount=files.filter(name => name.toLowerCase().endsWith('.dll')).length; if(dllCount===0) throw new Error('No DLL files found in runtime/win32-x64'); if(files.some(name => name.toLowerCase() === 'tesseract.exe')) throw new Error('Unexpected runtime/win32-x64/tesseract.exe in native-only package'); console.log('runtime files:', files.join(', '));"
+          node -e "const fs=require('fs'); const path=require('path'); const prebuildDir=path.join('prebuilds','win32-x64'); if(!fs.existsSync(prebuildDir)) throw new Error('Missing prebuild dir: '+prebuildDir); const files=fs.readdirSync(prebuildDir); const nodeCount=files.filter(name => name.toLowerCase().endsWith('.node')).length; const dllCount=files.filter(name => name.toLowerCase().endsWith('.dll')).length; if(nodeCount===0) throw new Error('No .node files found in prebuilds/win32-x64'); if(dllCount===0) throw new Error('No DLL files found next to the Windows prebuild'); if(files.some(name => name.toLowerCase() === 'tesseract.exe')) throw new Error('Unexpected prebuilds/win32-x64/tesseract.exe in native-only package'); console.log('prebuild files:', files.join(', '));"
 
       - name: Verify all release prebuild targets are present
         run: |
@@ -190,12 +225,12 @@ jobs:
       - name: Show package contents
         run: npm pack --dry-run
 
-      - name: Verify packed tarball contains bundled Windows native runtime DLLs
+      - name: Verify packed tarball contains colocated Windows prebuild DLLs
         run: |
           TARBALL=$(node -e "const pkg=require('./package.json'); const tarName=(pkg.name + '-' + pkg.version).replace('@','').replace('/','-') + '.tgz'; process.stdout.write(tarName);")
           npm pack --quiet > /dev/null
           test -f "$TARBALL"
-          node -e "const {execFileSync}=require('child_process'); const tarball=process.argv[1]; const listing=execFileSync('tar',['-tzf',tarball],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean); const hasExe=listing.includes('package/runtime/win32-x64/tesseract.exe'); const hasDll=listing.some(name => /^package\/runtime\/win32-x64\/.*\.dll$/i.test(name)); if(hasExe){throw new Error('Packed tarball unexpectedly contains runtime/win32-x64/tesseract.exe');} if(!hasDll){throw new Error('Packed tarball missing runtime/win32-x64/*.dll');} console.log('Verified runtime DLL entries in packed tarball.');" "$TARBALL"
+          node -e "const {execFileSync}=require('child_process'); const tarball=process.argv[1]; const listing=execFileSync('tar',['-tzf',tarball],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean); const hasRuntimeDir=listing.some(name => /^package\/runtime\/win32-x64\//i.test(name)); const hasExe=listing.includes('package/prebuilds/win32-x64/tesseract.exe'); const hasDll=listing.some(name => /^package\/prebuilds\/win32-x64\/.*\.dll$/i.test(name)); if(hasRuntimeDir){throw new Error('Packed tarball unexpectedly contains package/runtime/win32-x64');} if(hasExe){throw new Error('Packed tarball unexpectedly contains prebuilds/win32-x64/tesseract.exe');} if(!hasDll){throw new Error('Packed tarball missing prebuilds/win32-x64/*.dll');} console.log('Verified colocated Windows prebuild DLL entries in packed tarball.');" "$TARBALL"
 
       - name: Pack release tarball
         run: npm pack
