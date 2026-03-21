@@ -95,6 +95,18 @@ function createNodeModuleLink(targetPath, sourcePath) {
 	fs.symlinkSync(sourcePath, targetPath, 'dir')
 }
 
+/**
+ * @param {string[]} trailingArgs
+ * @returns {string[]}
+ */
+function getElectronCliArgs(trailingArgs) {
+	if (process.platform === 'linux') {
+		return ['-y', `electron@${ElectronVersion}`, '--no-sandbox', ...trailingArgs]
+	}
+
+	return ['-y', `electron@${ElectronVersion}`, ...trailingArgs]
+}
+
 function runDirectElectronSmoke() {
 	const directProbeRoot = path.join(TempRoot, 'direct-probe')
 	const directProbeScriptPath = path.join(directProbeRoot, 'main.js')
@@ -128,7 +140,7 @@ function runDirectElectronSmoke() {
 
 	const result = run(
 		NpxExecutable,
-		['-y', `electron@${ElectronVersion}`, directProbeScriptPath],
+		getElectronCliArgs([directProbeScriptPath]),
 		{
 			cwd: RepoRoot,
 			shell: process.platform === 'win32',
@@ -192,7 +204,7 @@ function runBundledLayoutSmoke() {
 
 	const result = run(
 		NpxExecutable,
-		['-y', `electron@${ElectronVersion}`, '.'],
+		getElectronCliArgs(['.']),
 		{
 			cwd: AppRoot,
 			shell: process.platform === 'win32',
