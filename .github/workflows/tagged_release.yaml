@@ -140,7 +140,31 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: prebuilds-win32-x64
-          path: .
+          path: downloaded-prebuilds
+
+      - name: Normalize Windows prebuild artifact layout
+        shell: pwsh
+        run: |
+          $downloadRoot = Join-Path $env:GITHUB_WORKSPACE 'downloaded-prebuilds'
+          $candidateDirs = Get-ChildItem -Path $downloadRoot -Directory -Recurse | Where-Object {
+            (Get-ChildItem -Path $_.FullName -Filter *.node -File -ErrorAction SilentlyContinue).Count -gt 0
+          }
+
+          if ($candidateDirs.Count -eq 0) {
+            throw "Could not find downloaded Windows prebuild directory under $downloadRoot"
+          }
+
+          $sourceDir = $candidateDirs[0].FullName
+          $targetRoot = Join-Path $env:GITHUB_WORKSPACE 'prebuilds'
+          $targetDir = Join-Path $targetRoot 'win32-x64'
+
+          New-Item -ItemType Directory -Path $targetRoot -Force | Out-Null
+          if (Test-Path $targetDir) {
+            Remove-Item -Recurse -Force $targetDir
+          }
+
+          Copy-Item -Path $sourceDir -Destination $targetDir -Recurse
+          Write-Host "Normalized Windows prebuild artifact from $sourceDir to $targetDir"
 
       - name: Sanitize PATH for clean prebuild load
         shell: pwsh

@@ -1039,3 +1039,13 @@ This file records the CI/workflow fix iterations so another agent can continue f
   - colocating DLLs with the Windows addon is the intended packaging model; tests must prove that layout works without `PATH` assistance.
 - Guardrail for next agents:
   - do not reintroduce `GITHUB_PATH` or package-level `PATH` hacks for Windows addon loading unless there is a demonstrated loader limitation that cannot be solved by colocating the required DLLs next to the `.node` file.
+
+### Iteration BS (completed)
+- Release workflow failure after BR:
+  - `verify_windows_prebuild` failed because `actions/download-artifact` restored the Windows prebuild artifact into a nested directory layout, so the check for `prebuilds/win32-x64` ran against a path that did not exist.
+- Local change summary:
+  - `.github/workflows/tagged_release.yaml`
+    - download the Windows prebuild artifact into `downloaded-prebuilds/`.
+    - add `Normalize Windows prebuild artifact layout` step that finds the downloaded directory containing the `.node` file and copies it into the expected package layout at `prebuilds/win32-x64` before the clean-process load check runs.
+- Rationale:
+  - the clean-process load assertion is still correct, but it must execute against the same on-disk layout that the package publish step uses.
