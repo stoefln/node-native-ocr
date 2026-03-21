@@ -178,5 +178,10 @@ jobs:
         run: |
           npm test
 
+      - name: Run Electron smoke tests (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test-electron -- "${{ env.REQUIRED_ELECTRON_VERSION }}"
+
       - name: Run Electron smoke tests
+        if: runner.os != 'Linux'
         run: npm run test-electron -- "${{ env.REQUIRED_ELECTRON_VERSION }}"
