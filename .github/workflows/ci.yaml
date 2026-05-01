@@ -85,6 +85,7 @@ jobs:
         run: |
           $addonDir = "$env:GITHUB_WORKSPACE\build\Release"
           $addonPath = Join-Path $addonDir 'node-native-ocr.node'
+          $requiredDlls = @('concrt140.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')
           if (!(Test-Path $addonPath)) {
             throw "Missing addon at $addonPath"
           }
@@ -92,6 +93,12 @@ jobs:
           $dllCount = (Get-ChildItem -Path $addonDir -Filter *.dll -File).Count
           if ($dllCount -eq 0) {
             throw "No DLLs were copied next to $addonPath"
+          }
+
+          foreach ($requiredDll in $requiredDlls) {
+            if (!(Test-Path (Join-Path $addonDir $requiredDll))) {
+              throw "Missing required Windows runtime DLL $requiredDll next to $addonPath"
+            }
           }
 
           Write-Host "Windows addon directory contents:"

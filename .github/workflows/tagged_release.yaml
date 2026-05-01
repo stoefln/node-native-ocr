@@ -85,6 +85,7 @@ jobs:
         shell: pwsh
         run: |
           $prebuildDir = "$env:GITHUB_WORKSPACE\prebuilds\win32-x64"
+          $requiredDlls = @('concrt140.dll', 'msvcp140.dll', 'msvcp140_1.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')
           $addonCount = (Get-ChildItem -Path $prebuildDir -Filter *.node -File).Count
           $dllCount = (Get-ChildItem -Path $prebuildDir -Filter *.dll -File).Count
 
@@ -94,6 +95,12 @@ jobs:
 
           if ($dllCount -eq 0) {
             throw "No DLLs were copied next to the Windows prebuild in $prebuildDir"
+          }
+
+          foreach ($requiredDll in $requiredDlls) {
+            if (!(Test-Path (Join-Path $prebuildDir $requiredDll))) {
+              throw "Missing required Windows runtime DLL $requiredDll in $prebuildDir"
+            }
           }
 
           if (Get-ChildItem -Path $prebuildDir -Filter tesseract.exe -File -ErrorAction SilentlyContinue) {
@@ -197,7 +204,7 @@ jobs:
       - name: Verify Windows prebuild loads in clean process
         shell: pwsh
         run: |
-          node -e "const fs=require('fs'); const path=require('path'); const dir=path.join(process.cwd(),'prebuilds','win32-x64'); if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir); if(!files.some(name => name.toLowerCase().endsWith('.node'))) throw new Error('Missing .node file in '+dir); if(!files.some(name => name.toLowerCase().endsWith('.dll'))) throw new Error('Missing colocated DLL in '+dir); const bindings=require('node-gyp-build')(process.cwd()); if(typeof bindings.recognize!=='function') throw new Error('Loaded bindings missing recognize export'); console.log('Loaded Windows prebuild from clean process.');"
+          node -e "const fs=require('fs'); const path=require('path'); const dir=path.join(process.cwd(),'prebuilds','win32-x64'); const required=['concrt140.dll','msvcp140.dll','msvcp140_1.dll','vcruntime140.dll','vcruntime140_1.dll']; if(!fs.existsSync(dir)) throw new Error('Missing prebuild dir: '+dir); const files=fs.readdirSync(dir); if(!files.some(name => name.toLowerCase().endsWith('.node'))) throw new Error('Missing .node file in '+dir); if(!files.some(name => name.toLowerCase().endsWith('.dll'))) throw new Error('Missing colocated DLL in '+dir); for (const fileName of required) { if(!files.includes(fileName)) throw new Error('Missing required DLL '+fileName+' in '+dir); } const bindings=require('node-gyp-build')(process.cwd()); if(typeof bindings.recognize!=='function') throw new Error('Loaded bindings missing recognize export'); console.log('Loaded Windows prebuild from clean process.');"
 
   publish:
     needs: [build, verify_windows_prebuild]
@@ -231,7 +238,7 @@ jobs:
 
       - name: Verify Windows release prebuild DLLs
         run: |
-          node -e "const fs=require('fs'); const path=require('path'); const prebuildDir=path.join('prebuilds','win32-x64'); if(!fs.existsSync(prebuildDir)) throw new Error('Missing prebuild dir: '+prebuildDir); const files=fs.readdirSync(prebuildDir); const nodeCount=files.filter(name => name.toLowerCase().endsWith('.node')).length; const dllCount=files.filter(name => name.toLowerCase().endsWith('.dll')).length; if(nodeCount===0) throw new Error('No .node files found in prebuilds/win32-x64'); if(dllCount===0) throw new Error('No DLL files found next to the Windows prebuild'); if(files.some(name => name.toLowerCase() === 'tesseract.exe')) throw new Error('Unexpected prebuilds/win32-x64/tesseract.exe in native-only package'); console.log('prebuild files:', files.join(', '));"
+          node -e "const fs=require('fs'); const path=require('path'); const prebuildDir=path.join('prebuilds','win32-x64'); const required=['concrt140.dll','msvcp140.dll','msvcp140_1.dll','vcruntime140.dll','vcruntime140_1.dll']; if(!fs.existsSync(prebuildDir)) throw new Error('Missing prebuild dir: '+prebuildDir); const files=fs.readdirSync(prebuildDir); const nodeCount=files.filter(name => name.toLowerCase().endsWith('.node')).length; const dllCount=files.filter(name => name.toLowerCase().endsWith('.dll')).length; if(nodeCount===0) throw new Error('No .node files found in prebuilds/win32-x64'); if(dllCount===0) throw new Error('No DLL files found next to the Windows prebuild'); for (const fileName of required) { if(!files.includes(fileName)) throw new Error('Missing required DLL '+fileName+' in '+prebuildDir); } if(files.some(name => name.toLowerCase() === 'tesseract.exe')) throw new Error('Unexpected prebuilds/win32-x64/tesseract.exe in native-only package'); console.log('prebuild files:', files.join(', '));"
 
       - name: Verify all release prebuild targets are present
         run: |
@@ -254,7 +261,7 @@ jobs:
           TARBALL=$(node -e "const pkg=require('./package.json'); const tarName=(pkg.name + '-' + pkg.version).replace('@','').replace('/','-') + '.tgz'; process.stdout.write(tarName);")
           npm pack --quiet > /dev/null
           test -f "$TARBALL"
-          node -e "const {execFileSync}=require('child_process'); const tarball=process.argv[1]; const listing=execFileSync('tar',['-tzf',tarball],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean); const hasRuntimeDir=listing.some(name => /^package\/runtime\/win32-x64\//i.test(name)); const hasExe=listing.includes('package/prebuilds/win32-x64/tesseract.exe'); const hasDll=listing.some(name => /^package\/prebuilds\/win32-x64\/.*\.dll$/i.test(name)); if(hasRuntimeDir){throw new Error('Packed tarball unexpectedly contains package/runtime/win32-x64');} if(hasExe){throw new Error('Packed tarball unexpectedly contains prebuilds/win32-x64/tesseract.exe');} if(!hasDll){throw new Error('Packed tarball missing prebuilds/win32-x64/*.dll');} console.log('Verified colocated Windows prebuild DLL entries in packed tarball.');" "$TARBALL"
+          node -e "const {execFileSync}=require('child_process'); const tarball=process.argv[1]; const required=['concrt140.dll','msvcp140.dll','msvcp140_1.dll','vcruntime140.dll','vcruntime140_1.dll']; const listing=execFileSync('tar',['-tzf',tarball],{encoding:'utf8'}).split(/\r?\n/).filter(Boolean); const hasRuntimeDir=listing.some(name => /^package\/runtime\/win32-x64\//i.test(name)); const hasExe=listing.includes('package/prebuilds/win32-x64/tesseract.exe'); const hasDll=listing.some(name => /^package\/prebuilds\/win32-x64\/.*\.dll$/i.test(name)); if(hasRuntimeDir){throw new Error('Packed tarball unexpectedly contains package/runtime/win32-x64');} if(hasExe){throw new Error('Packed tarball unexpectedly contains prebuilds/win32-x64/tesseract.exe');} if(!hasDll){throw new Error('Packed tarball missing prebuilds/win32-x64/*.dll');} for (const fileName of required) { const entry='package/prebuilds/win32-x64/'+fileName; if(!listing.includes(entry)) throw new Error('Packed tarball missing '+entry); } console.log('Verified colocated Windows prebuild DLL entries in packed tarball.');" "$TARBALL"
 
       - name: Pack release tarball
         run: npm pack
